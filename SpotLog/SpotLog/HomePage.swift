@@ -85,7 +85,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         if authorization == .authorizedWhenInUse || authorization == .authorizedAlways {
             manager.startUpdatingLocation()
         }
-        print("Autorizzazione", manager.authorizationStatus.rawValue)
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -97,17 +96,45 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 }
 
+struct FavoritePlaces: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var icon: String
+    var latitude: Double
+    var longitude: Double
+    
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+}
+
 struct UserLocationMap: View {
     @StateObject private var locationManager = LocationManager()
     @State private var position: MapCameraPosition = .automatic
 
+    @State private var favoritePlaces: FavoritePlaces?
+
+    @State private var places: [FavoritePlaces] = [
+        FavoritePlaces(name: "Duomo di Milano", icon: "star.fill", latitude: 45.4642, longitude: 9.1900),
+        FavoritePlaces(name: "Colosseo", icon: "home.fill", latitude: 41.8902, longitude: 12.4922)
+    ]
+
     var body: some View {
-        Map(position: $position) {
+        Map(position: $position, selection: $favoritePlaces) {
             UserAnnotation()
+
+            ForEach(places) { place in
+                Marker(place.name, systemImage: "star.fill", coordinate: place.coordinate)
+                    .tint(.orange)
+                    .tag(place)
+            }
         }
         .mapControls {
             MapUserLocationButton()
             MapCompass()
+        }
+        .sheet(item: $favoritePlaces) { place in
+            Dettaglio(place: place)
         }
         .onAppear { locationManager.start() }
         .onChange(of: locationManager.lastLocation) { _, newValue in
@@ -118,6 +145,34 @@ struct UserLocationMap: View {
                     span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
                 )
             )
+        }
+    }
+}
+
+struct DettaglioPosto: View {
+    let place: FavoritePlaces
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("Nome") {
+                    Text(place.name)
+                        .font(.headline)
+                }
+
+                Section("Posizione") {
+                    Text("Latitudine: \(place.latitude)")
+                    Text("Longitudine: \(place.longitude)")
+                }
+            }
+            .navigationTitle(place.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Chiudi") { dismiss() }
+                }
+            }
         }
     }
 }
