@@ -7,6 +7,12 @@
     "Creazione Spot" : {
 
     },
+    "Cultura" : {
+
+    },
+    "Divertimento" : {
+
+    },
     "Explore" : {
 
     },
@@ -16,7 +22,31 @@
     "Home" : {
 
     },
+    "Monumento" : {
+
+    },
+    "Natura" : {
+
+    },
+    "Nome della tipologia" : {
+
+    },
+    "Nome Dello Spot" : {
+
+    },
+    "Note sul viaggio" : {
+
+    },
+    "Nuova Tipologia" : {
+
+    },
+    "Panorama" : {
+
+    },
     "Preferiti" : {
+
+    },
+    "Ristoro" : {
 
     },
     "Saluto" : {
@@ -35,6 +65,18 @@
           }
         }
       }
+    },
+    "Shopping" : {
+
+    },
+    "Spiaggia" : {
+
+    },
+    "Tipologia" : {
+
+    },
+    "Tipologia:" : {
+
     }
   },
   "version" : "1.0"
