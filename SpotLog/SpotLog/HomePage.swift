@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct HomePage: View {
+struct Pagina: View {
     @State private var searchText: String = ""
 
     var body: some View {
@@ -29,10 +29,25 @@ struct HomePage: View {
                 }
             }
         }.background(Color.gray)
-        
     }
 }
 
 #Preview {
     HomePage()
 }
+
+struct HomePage: View {
+    var body: some View {
+        TabView {
+            Pagina()
+                .tabItem { Label("Home", systemImage: "person.fill") }
+            CreazioneSpot()
+                .tabItem {
+                    Image(systemName: "plus")
+                }
+            Preferiti()
+                .tabItem { Label("Preferiti", systemImage: "star.fill") }
+        }
+    }
+}
+
