@@ -29,6 +29,7 @@
 
 /* Begin PBXFileReference section */
 		01A2D4413086214C00DD6D27 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		01A2D496308649C200DD6D27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		01DE2C1F308114910082E927 /* SpotLog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpotLog.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01DE2C2C308114930082E927 /* SpotLogTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpotLogTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		01DE2C36308114930082E927 /* SpotLogUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpotLogUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +81,7 @@
 		01DE2C16308114910082E927 = {
 			isa = PBXGroup;
 			children = (
+				01A2D496308649C200DD6D27 /* Info.plist */,
 				01A2D4413086214C00DD6D27 /* Localizable.xcstrings */,
 				01DE2C21308114910082E927 /* SpotLog */,
 				01DE2C2F308114930082E927 /* SpotLogTests */,
