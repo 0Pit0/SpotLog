@@ -90,6 +90,10 @@ Ogni componente vive in file separati, per ridurre al minimo i conflitti Git.
 
 > L'API REST Countries è pubblica e non richiede chiavi di accesso.
 
+### Note sul versionamento Git
+
+> ⚠️ **Gestione dei file di sistema**: Il repository **non accetta file `.DS_Store`**. Assicurati che siano inclusi nel file `.gitignore` prima di effettuare commit o push per evitare conflitti.
+
 ---
 
 ## 7. Piano di lavoro incrementale
