@@ -1,4 +1,7 @@
 import SwiftUI
+import MapKit
+import CoreLocation
+import Combine
 
 struct Pagina: View {
     @State private var searchText: String = ""
@@ -28,6 +31,7 @@ struct Pagina: View {
                     
                 }
             }
+            UserLocationMap()
         }.background(Color.gray)
     }
 }
@@ -51,3 +55,69 @@ struct HomePage: View {
     }
 }
 
+
+final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+
+    @Published var authorization: CLAuthorizationStatus = .notDetermined
+    @Published var lastLocation: CLLocation?
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        authorization = manager.authorizationStatus
+    }
+
+    func start() {
+        switch manager.authorizationStatus {
+        case .notDetermined:
+            manager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.startUpdatingLocation()
+        default:
+            break
+        }
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorization = manager.authorizationStatus
+        if authorization == .authorizedWhenInUse || authorization == .authorizedAlways {
+            manager.startUpdatingLocation()
+        }
+        print("Autorizzazione", manager.authorizationStatus.rawValue)
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        lastLocation = locations.last
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location error:", error)
+    }
+}
+
+struct UserLocationMap: View {
+    @StateObject private var locationManager = LocationManager()
+    @State private var position: MapCameraPosition = .automatic
+
+    var body: some View {
+        Map(position: $position) {
+            UserAnnotation()
+        }
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
+        }
+        .onAppear { locationManager.start() }
+        .onChange(of: locationManager.lastLocation) { _, newValue in
+            guard let coordinate = newValue?.coordinate else { return }
+            position = .region(
+                MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+                )
+            )
+        }
+    }
+}
