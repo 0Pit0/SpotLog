@@ -1,0 +1,29 @@
+{
+  "sourceLanguage" : "it",
+  "strings" : {
+    "cerca nei tuoi posti" : {
+
+    },
+    "Explore" : {
+
+    },
+    "Saluto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good Morning"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buongiorno"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

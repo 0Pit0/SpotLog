@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		01A2D4423086214C00DD6D27 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 01A2D4413086214C00DD6D27 /* Localizable.xcstrings */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		01DE2C2D308114930082E927 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01A2D4413086214C00DD6D27 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		01DE2C1F308114910082E927 /* SpotLog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SpotLog.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01DE2C2C308114930082E927 /* SpotLogTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpotLogTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		01DE2C36308114930082E927 /* SpotLogUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpotLogUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +80,7 @@
 		01DE2C16308114910082E927 = {
 			isa = PBXGroup;
 			children = (
+				01A2D4413086214C00DD6D27 /* Localizable.xcstrings */,
 				01DE2C21308114910082E927 /* SpotLog */,
 				01DE2C2F308114930082E927 /* SpotLogTests */,
 				01DE2C39308114930082E927 /* SpotLogUITests */,
@@ -187,11 +193,12 @@
 				};
 			};
 			buildConfigurationList = 01DE2C1A308114910082E927 /* Build configuration list for PBXProject "SpotLog" */;
-			developmentRegion = en;
+			developmentRegion = it;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				it,
 			);
 			mainGroup = 01DE2C16308114910082E927;
 			minimizedProjectReferenceProxies = 1;
@@ -212,6 +219,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				01A2D4423086214C00DD6D27 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,6 +336,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -384,6 +393,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
