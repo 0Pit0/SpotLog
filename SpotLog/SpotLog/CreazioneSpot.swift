@@ -5,7 +5,7 @@ struct CreazioneSpot: View {
     @State private var nomeSpot: String = ""
     @State private var noteViaggio: String = ""
     @State private var nuovaTipologia: String = ""
-    @State private var icona: String = "montagna"
+    @State private var iconColor = Color.blue
     var body: some View {
         VStack{
             HStack{
@@ -34,11 +34,21 @@ struct CreazioneSpot: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
             Section("Segnalino"){
-                Picker("Icona", selection: $icona) {
-                    Image(systemName: "mountain.2").tag("montagna")
-                    Image(systemName: "fork.knife").tag( "ristorante")
-                    Image(systemName: "glass").tag("bar")
-                }.pickerStyle(SegmentedPickerStyle())
+                Picker("Icona", selection: $tipologia) {
+                    Image(systemName: "mountain.2").tag(0)
+                    Image(systemName: "fork.knife").tag(3)
+                    Image(systemName: "building.columns").tag(1)
+                    Image(systemName: "tree").tag(2)
+                    Image(systemName: "book").tag(4)
+                    Image(systemName: "water.waves").tag(5)
+                    Image(systemName: "party.popper").tag(6)
+                    Image(systemName: "cart").tag(7)
+                    Image(systemName: "star").tag(8)
+                }.pickerStyle(SegmentedPickerStyle()).padding(10)
+                Picker("Colore", selection: $iconColor){
+                    Image(systemName: "circle.fill")
+                        .tag(Color.blue)
+                }.pickerStyle(SegmentedPickerStyle()).padding(10)
             }
         }
     }
