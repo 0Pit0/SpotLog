@@ -26,6 +26,8 @@ struct Pagina: View {
             .cornerRadius(10)
             .padding(5)
             
+            
+            
             HStack{
                 Button("Explore"){
                     
@@ -47,10 +49,11 @@ struct HomePage: View {
                 .tabItem { Label("Home", systemImage: "person.fill") }
             CreazioneSpot()
                 .tabItem {
-                    Image(systemName: "plus")
+                    Label("Creazione Spot", systemImage: "plus")
                 }
             Preferiti()
-                .tabItem { Label("Preferiti", systemImage: "star.fill") }
+                .tabItem {
+                    Label("Preferiti", systemImage: "star.fill") }
         }
     }
 }

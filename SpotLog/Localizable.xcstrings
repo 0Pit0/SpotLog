@@ -4,7 +4,7 @@
     "cerca nei tuoi posti" : {
 
     },
-    "Creazione Spot" : {
+    "Chiudi" : {
 
     },
     "Cultura" : {
@@ -16,16 +16,28 @@
     "Explore" : {
 
     },
-    "Hello, World!" : {
+    "Home" : {
 
     },
-    "Home" : {
+    "Icona" : {
+
+    },
+    "Latitudine: %lf" : {
+
+    },
+    "Longitudine: %lf" : {
+
+    },
+    "Mappa" : {
 
     },
     "Monumento" : {
 
     },
     "Natura" : {
+
+    },
+    "Nome" : {
 
     },
     "Nome della tipologia" : {
@@ -41,6 +53,9 @@
 
     },
     "Panorama" : {
+
+    },
+    "Posizione" : {
 
     },
     "Preferiti" : {
@@ -65,6 +80,9 @@
           }
         }
       }
+    },
+    "Segnalino" : {
+
     },
     "Shopping" : {
 

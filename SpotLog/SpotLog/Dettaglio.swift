@@ -9,17 +9,7 @@ struct Dettaglio: View {
         var body: some View {
             NavigationStack {
                 List {
-                    Section("Nome") {
-                        Text(place.name)
-                            .font(.headline)
-                    }
-
-                    Section("Posizione") {
-                        Text("Latitudine: \(place.latitude)")
-                        Text("Longitudine: \(place.longitude)")
-                    }
-
-                    Section("Mappa") {
+                    Section() {
                         Map(initialPosition: .region(
                             MKCoordinateRegion(
                                 center: place.coordinate,
@@ -29,7 +19,23 @@ struct Dettaglio: View {
                             Marker(place.name, coordinate: place.coordinate)
                         }
                         .frame(height: 200)
+                        .border(Color.gray, width: 1)
+                        .cornerRadius(12)
+                        
+                        Text(place.name)
+                            .font(.title)
+                            .fontWeight(.bold)
+                        
+                        Text("Italia - 12 Aug 2021 - Monumento")
+                            .font(.caption)
                     }
+
+                    Section("Posizione") {
+                        Text("Latitudine: \(place.latitude)")
+                        Text("Longitudine: \(place.longitude)")
+                    }
+
+                    
                 }
                 .navigationTitle(place.name)
                 .navigationBarTitleDisplayMode(.inline)
