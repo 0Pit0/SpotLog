@@ -62,7 +62,7 @@ struct StarRatingView: View {
                         .foregroundStyle(number <= rating ? .yellow : .gray.opacity(0.4))
                         .font(.title3)
                 }
-                .buttonStyle(.plain) // Evita che il tocco attivi l'intera riga del Form
+                .buttonStyle(.plain)
             }
         }
     }
@@ -75,11 +75,9 @@ struct CreazioneSpot: View {
     @State private var nuovaTipologia: String = ""
     @State private var iconColor: Color = .blue
     
-    // Gestione Immagini
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var loadedImages: [UIImage] = []
-    
-    // Stato Valutazione
+
     @State private var valutazione: Int = 0
 
     var body: some View {
