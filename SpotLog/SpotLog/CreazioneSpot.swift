@@ -56,7 +56,14 @@ struct CreazioneSpot: View {
             Text("Creazione Spot")
                 .font(.largeTitle)
             
-            // TODO: Inserire Mappa
+            UserLocationMap()
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
+                )
+                .padding(.horizontal)
             
             Form {
                 Section("Stile Spot") {
