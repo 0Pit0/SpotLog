@@ -67,7 +67,7 @@ struct HomePage: View {
     var body: some View {
         TabView {
             Pagina()
-                .tabItem { Label("Home", systemImage: "person.fill") }
+                .tabItem { Label("Mappa", systemImage: "map") }
             CreazioneSpot()
                 .tabItem {
                     Label("Creazione Spot", systemImage: "plus")
