@@ -58,9 +58,10 @@ struct Dettaglio: View {
                         
                     }
 
-                    Section("Posizione") {
-                        Text("Latitudine: \(place.latitude)")
-                        Text("Longitudine: \(place.longitude)")
+                    Section("Opzioni") {
+                        Button("Elimina") {
+                            print("ELIMINARE")
+                        }.foregroundStyle(.red)
                     }
 
                     
@@ -69,7 +70,9 @@ struct Dettaglio: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Chiudi") { dismiss() }
+                        Button("Modifica") {
+                            print("CREARE FORM MODIFICA")
+                        }
                     }
                 }
             }
