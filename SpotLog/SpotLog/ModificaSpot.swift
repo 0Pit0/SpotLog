@@ -3,6 +3,9 @@ import MapKit
 import PhotosUI
 
 struct ModificaSpot: View {
+    let place: FavoritePlaces
+    @Environment(\.dismiss) private var dismiss
+
     @State private var tipologia: TipologiaSpot = .panorama
     @State private var nomeSpot: String = ""
     @State private var noteViaggio: String = ""
@@ -11,20 +14,23 @@ struct ModificaSpot: View {
     
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var loadedImages: [UIImage] = []
-
     @State private var valutazione: Int = 0
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    UserLocationMap()
-                        .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                    Map(initialPosition: .region(
+                        MKCoordinateRegion(
+                            center: place.coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                         )
+                    )) {
+                        Marker(place.name, coordinate: place.coordinate)
+                    }
+                    .frame(height: 200)
+                    .border(Color.gray, width: 1)
+                    .cornerRadius(12)
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
@@ -100,21 +106,28 @@ struct ModificaSpot: View {
                 }
             }
             .navigationTitle("Modifica Spot")
-            .onChange(of: selectedItems) { _, newItems in
-                Task {
-                    for item in newItems {
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let uiImage = UIImage(data: data) {
-                            loadedImages.append(uiImage)
-                        }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annulla") {
+                        dismiss()
                     }
-                    selectedItems.removeAll()
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Salva") {
+                        // Logica di salvataggio delle modifiche
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                nomeSpot = place.name
+                noteViaggio = place.descrizione
             }
         }
     }
 }
 
 #Preview {
-    CreazioneSpot()
+    ModificaSpot(place: FavoritePlaces(name: "Colosseo", icon: "home.fill", descrizione: "Bel posto molto antico e pieno di cose fantastiche", latitude: 41.8902, longitude: 12.4922))
 }
