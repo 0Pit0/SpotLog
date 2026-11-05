@@ -89,15 +89,32 @@ func apriIndicazioni(lat: Double, lon: Double, nome: String) {
 
 struct kmDaTe: View {
     var place: FavoritePlaces
-    
-    
-    
+    @StateObject private var gestore = GestorePosizione()
+
     var body: some View {
         HStack {
-            Image(systemName: place.icon)
-            Text("Distanza km")
+            Image(systemName: "location.circle.fill")
+            testoDistanza
                 .font(.caption)
             Spacer()
+        }
+        .onAppear { gestore.avvia() }
+        .onDisappear { gestore.ferma() }
+    }
+
+    @ViewBuilder
+    private var testoDistanza: some View {
+        switch gestore.autorizzazione {
+        case .denied, .restricted:
+            Text("Posizione non disponibile")
+                .foregroundStyle(.secondary)
+        default:
+            if let posizione = gestore.posizione {
+                Text("\(place.distanzaFormattata(da: posizione)) da te")
+            } else {
+                Text("Calcolo distanza…")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

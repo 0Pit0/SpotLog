@@ -132,6 +132,20 @@ struct FavoritePlaces: Codable, Identifiable, Hashable {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 }
+extension FavoritePlaces {
+    func distanzaFormattata(da posizione: CLLocation) -> String {
+        let destinazione = CLLocation(latitude: latitude, longitude: longitude)
+        let metri = posizione.distance(from: destinazione)
+
+        if metri < 1000 {
+            return "\(Int(metri)) m"
+        }
+        let km = Measurement(value: metri / 1000, unit: UnitLength.kilometers)
+        return km.formatted(.measurement(width: .abbreviated,
+                                         usage: .asProvided,
+                                         numberFormatStyle: .number.precision(.fractionLength(1))))
+    }
+}
 
 struct UserLocationMap: View {
     @StateObject private var locationManager = LocationManager()
