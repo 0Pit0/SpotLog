@@ -4,13 +4,20 @@ import MapKit
 import CoreLocation
 import UIKit
 
+// Identificatore per aprire la galleria a tutto schermo sull'immagine toccata
+struct FotoSelezionata: Identifiable {
+    let id = UUID()
+    let indiceIniziale: Int
+}
+
 struct Dettaglio: View {
-    let place: FavoritePlaces
+    @Bindable var place: FavoritePlaces
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var mostraModifica = false
     @State private var mostraConfermaEliminazione = false
+    @State private var fotoSelezionata: FotoSelezionata? = nil
 
     var body: some View {
         NavigationStack {
@@ -25,6 +32,8 @@ struct Dettaglio: View {
                         Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
                             .tint(place.swiftUIColor)
                     }
+                    // Forza il ridisegno del Marker anche nella mappa di Dettaglio dopo la modifica
+                    .id(place.markerID)
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
@@ -89,11 +98,16 @@ struct Dettaglio: View {
                             HStack(spacing: 10) {
                                 ForEach(place.fotoData.indices, id: \.self) { idx in
                                     if let uiImage = UIImage(data: place.fotoData[idx]) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 120, height: 95)
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        Button {
+                                            fotoSelezionata = FotoSelezionata(indiceIniziale: idx)
+                                        } label: {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 120, height: 95)
+                                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                             }
@@ -127,6 +141,12 @@ struct Dettaglio: View {
             .sheet(isPresented: $mostraModifica) {
                 ModificaSpot(place: place)
             }
+            .fullScreenCover(item: $fotoSelezionata) { selezione in
+                VisualizzatoreFotoFullScreen(
+                    immagini: place.fotoData.compactMap { UIImage(data: $0) },
+                    indiceIniziale: selezione.indiceIniziale
+                )
+            }
             .alert("Eliminare \"\(place.name)\"?", isPresented: $mostraConfermaEliminazione) {
                 Button("Annulla", role: .cancel) { }
                 Button("Elimina", role: .destructive) {
@@ -138,6 +158,94 @@ struct Dettaglio: View {
                 Text("Foto e note verranno rimosse dal dispositivo. L'azione non è reversibile.")
             }
         }
+    }
+}
+
+// MARK: - Visualizzatore Foto a Schermo Intero (Swipe + Zoom + Chiusura)
+struct VisualizzatoreFotoFullScreen: View {
+    let immagini: [UIImage]
+    @State private var indiceCorrente: Int
+    @Environment(\.dismiss) private var dismiss
+
+    init(immagini: [UIImage], indiceIniziale: Int) {
+        self.immagini = immagini
+        _indiceCorrente = State(initialValue: indiceIniziale)
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $indiceCorrente) {
+                ForEach(immagini.indices, id: \.self) { index in
+                    ImmagineZoomabile(image: immagini[index])
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: immagini.count > 1 ? .always : .never))
+            .ignoresSafeArea()
+
+            // Barra superiore con contatore e pulsante di chiusura
+            HStack {
+                if immagini.count > 1 {
+                    Text("\(indiceCorrente + 1) / \(immagini.count)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 30))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, .white.opacity(0.25))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+        }
+    }
+}
+
+// MARK: - Singola Immagine con supporto Pinch-to-Zoom e Doppio Tap
+struct ImmagineZoomabile: View {
+    let image: UIImage
+    @State private var scala: CGFloat = 1.0
+    @State private var ultimaScala: CGFloat = 1.0
+
+    var body: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .scaleEffect(scala)
+            .gesture(
+                MagnificationGesture()
+                    .onChanged { valore in
+                        let delta = valore / ultimaScala
+                        ultimaScala = valore
+                        scala = min(max(scala * delta, 1.0), 4.0)
+                    }
+                    .onEnded { _ in
+                        ultimaScala = 1.0
+                        if scala < 1.05 {
+                            withAnimation(.spring()) {
+                                scala = 1.0
+                            }
+                        }
+                    }
+            )
+            .onTapGesture(count: 2) {
+                withAnimation(.spring()) {
+                    scala = (scala > 1.0) ? 1.0 : 2.5
+                }
+            }
     }
 }
 

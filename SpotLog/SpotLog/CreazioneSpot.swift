@@ -54,11 +54,7 @@ struct StarRatingView: View {
         HStack {
             ForEach(1...maxRating, id: \.self) { number in
                 Button {
-                    if rating == number {
-                        rating = 0
-                    } else {
-                        rating = number
-                    }
+                    rating = (rating == number) ? 0 : number
                 } label: {
                     Image(systemName: number <= rating ? "star.fill" : "star")
                         .foregroundStyle(number <= rating ? .yellow : .gray.opacity(0.4))
@@ -81,35 +77,28 @@ struct CreazioneSpot: View {
     @State private var nazioneRilevata: String = "Italia"
 
     @State private var tipologia: TipologiaSpot = .panorama
+    @State private var categoriaCustomSelezionata: String? = nil
+    @State private var nuovaTipologia: String = ""
+    @FocusState private var campoNuovaTipologiaFocussato: Bool
+
     @State private var nomeSpot: String = ""
     @State private var noteViaggio: String = ""
-    @State private var nuovaTipologia: String = ""
     @State private var iconColor: Color = .blue
     
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var loadedImages: [UIImage] = []
     @State private var valutazione: Int = 0
     @State private var mostraConfermaSalvataggio = false
+    @State private var fotoSelezionata: FotoSelezionata? = nil
 
-    private var categoriaFinale: String {
-        if tipologia == .nuovaTipologia {
-            let pulita = nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines)
-            return pulita.isEmpty ? "Personalizzato" : pulita
-        }
-        return tipologia.titolo
+    private var tipologiePredefinite: [TipologiaSpot] {
+        TipologiaSpot.allCases.filter { $0 != .nuovaTipologia }
     }
-    
-    private var suggerimentiCategorie: [(nome: String, count: Int)] {
-        let query = nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return [] }
-        
-        let nomiStandard = Set(
-            TipologiaSpot.allCases
-                .filter { $0 != .nuovaTipologia }
-                .map { $0.titolo.lowercased() }
-        )
-        
+
+    private var categoriePersonalizzateEsistenti: [(nome: String, count: Int)] {
+        let nomiStandard = Set(tipologiePredefinite.map { $0.titolo.lowercased() })
         var conteggi: [String: (nomeOriginale: String, count: Int)] = [:]
+        
         for spot in places {
             let cat = spot.categoria.trimmingCharacters(in: .whitespacesAndNewlines)
             let chiave = cat.lowercased()
@@ -125,13 +114,44 @@ struct CreazioneSpot: View {
         }
         
         return conteggi.values
-            .filter { $0.nomeOriginale.localizedCaseInsensitiveContains(query) }
             .sorted {
                 $0.count != $1.count
                     ? $0.count > $1.count
                     : $0.nomeOriginale.localizedCaseInsensitiveCompare($1.nomeOriginale) == .orderedAscending
             }
             .map { (nome: $0.nomeOriginale, count: $0.count) }
+    }
+
+    private func conteggioSpot(per tipo: TipologiaSpot) -> Int {
+        places.filter {
+            $0.categoria.localizedCaseInsensitiveCompare(tipo.titolo) == .orderedSame
+        }.count
+    }
+
+    private var mostraCampoNuovaTipologia: Bool {
+        tipologia == .nuovaTipologia && categoriaCustomSelezionata == nil
+    }
+
+    private var etichettaMenuTipologia: String {
+        if tipologia == .nuovaTipologia {
+            if let custom = categoriaCustomSelezionata {
+                return custom
+            }
+            let digitata = nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines)
+            return digitata.isEmpty ? "Nuova Tipologia…" : digitata
+        }
+        return tipologia.titolo
+    }
+
+    private var categoriaFinale: String {
+        if tipologia == .nuovaTipologia {
+            if let custom = categoriaCustomSelezionata {
+                return custom
+            }
+            let pulita = nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines)
+            return pulita.isEmpty ? "Personalizzato" : pulita
+        }
+        return tipologia.titolo
     }
 
     var body: some View {
@@ -150,6 +170,7 @@ struct CreazioneSpot: View {
                                 )
                                 .tint(iconColor)
                             }
+                            .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)")
                             .onTapGesture { screenPoint in
                                 if let coord = proxy.convert(screenPoint, from: .local) {
                                     coordinateScelte = coord
@@ -183,52 +204,95 @@ struct CreazioneSpot: View {
                 .listRowBackground(Color.clear)
 
                 Section("Stile Spot") {
-                    LabeledContent("Icona") {
+                    LabeledContent("Tipologia") {
                         Menu {
-                            Picker("", selection: $tipologia) {
-                                ForEach(TipologiaSpot.allCases) { tipo in
-                                    Label(tipo.titolo, systemImage: tipo.icona)
-                                        .tag(tipo)
+                            Section("Predefinite") {
+                                ForEach(tipologiePredefinite) { tipo in
+                                    let count = conteggioSpot(per: tipo)
+                                    Button {
+                                        withAnimation(.snappy) {
+                                            tipologia = tipo
+                                            categoriaCustomSelezionata = nil
+                                            nuovaTipologia = ""
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(count > 0 ? "\(tipo.titolo) (\(count))" : tipo.titolo)
+                                            Image(systemName: tipo.icona)
+                                            if tipologia == tipo {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if !categoriePersonalizzateEsistenti.isEmpty {
+                                Section("Le tue categorie") {
+                                    ForEach(categoriePersonalizzateEsistenti, id: \.nome) { custom in
+                                        Button {
+                                            withAnimation(.snappy) {
+                                                tipologia = .nuovaTipologia
+                                                categoriaCustomSelezionata = custom.nome
+                                                nuovaTipologia = custom.nome
+                                            }
+                                        } label: {
+                                            HStack {
+                                                Text("\(custom.nome) (\(custom.count))")
+                                                Image(systemName: "star.fill")
+                                                if tipologia == .nuovaTipologia && categoriaCustomSelezionata == custom.nome {
+                                                    Image(systemName: "checkmark")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Section {
+                                Button {
+                                    withAnimation(.snappy) {
+                                        tipologia = .nuovaTipologia
+                                        categoriaCustomSelezionata = nil
+                                        nuovaTipologia = ""
+                                        campoNuovaTipologiaFocussato = true
+                                    }
+                                } label: {
+                                    Label("Nuova Tipologia…", systemImage: "plus.circle.fill")
                                 }
                             }
                         } label: {
                             HStack(spacing: 6) {
-                                Text(tipologia.titolo)
+                                Text(etichettaMenuTipologia)
+                                    .fontWeight(.medium)
                                 Image(systemName: tipologia.icona)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(iconColor.opacity(0.12), in: Capsule())
                         }
                     }
                     .tint(iconColor)
 
-                    if tipologia == .nuovaTipologia {
-                        VStack(alignment: .leading, spacing: 8) {
-                            TextField("Nuova tipologia", text: $nuovaTipologia)
+                    if mostraCampoNuovaTipologia {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(iconColor)
+                            TextField("Nome nuova tipologia (es. Escursione)", text: $nuovaTipologia)
                                 .autocorrectionDisabled()
+                                .focused($campoNuovaTipologiaFocussato)
                             
-                            if !suggerimentiCategorie.isEmpty {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(suggerimentiCategorie, id: \.nome) { suggerimento in
-                                            Button {
-                                                nuovaTipologia = suggerimento.nome
-                                            } label: {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "star.fill")
-                                                        .font(.caption2)
-                                                    Text("\(suggerimento.nome) (\(suggerimento.count))")
-                                                        .font(.caption)
-                                                        .fontWeight(.medium)
-                                                }
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 6)
-                                                .background(iconColor.opacity(0.15), in: Capsule())
-                                                .foregroundStyle(iconColor)
-                                            }
-                                            .buttonStyle(.plain)
-                                        }
-                                    }
-                                    .padding(.top, 2)
+                            if !nuovaTipologia.isEmpty {
+                                Button {
+                                    nuovaTipologia = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -243,37 +307,48 @@ struct CreazioneSpot: View {
                 }
 
                 Section("Foto Spot") {
-                    if !loadedImages.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(loadedImages.indices, id: \.self) { index in
-                                    ZStack(alignment: .topTrailing) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(loadedImages.indices, id: \.self) { index in
+                                ZStack(alignment: .topTrailing) {
+                                    Button {
+                                        fotoSelezionata = FotoSelezionata(indiceIniziale: index)
+                                    } label: {
                                         Image(uiImage: loadedImages[index])
                                             .resizable()
                                             .scaledToFill()
                                             .frame(width: 80, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                                        Button {
-                                            loadedImages.remove(at: index)
-                                        } label: {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundStyle(.white, .red)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .offset(x: 4, y: -4)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
                                     }
+                                    .buttonStyle(.plain)
+
+                                    Button {
+                                        loadedImages.remove(at: index)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.white, .red)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .offset(x: 4, y: -4)
                                 }
                             }
-                            .padding(.vertical, 4)
-                        }
-                    }
 
-                    PhotosPicker(
-                        selection: $selectedItems,
-                        matching: .images
-                    ) {
-                        Label("Aggiungi Foto", systemImage: "photo.badge.plus")
+                            PhotosPicker(
+                                selection: $selectedItems,
+                                matching: .images
+                            ) {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(.systemGray5))
+                                    .frame(width: 80, height: 80)
+                                    .overlay {
+                                        Image(systemName: "plus")
+                                            .font(.title2.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
 
@@ -295,13 +370,19 @@ struct CreazioneSpot: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(
                         nomeSpot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                        (tipologia == .nuovaTipologia && nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        (mostraCampoNuovaTipologia && nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     )
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
                 }
             }
             .navigationTitle("Creazione Spot")
+            .fullScreenCover(item: $fotoSelezionata) { selezione in
+                VisualizzatoreFotoFullScreen(
+                    immagini: loadedImages,
+                    indiceIniziale: selezione.indiceIniziale
+                )
+            }
             .onAppear {
                 locationManager.start()
             }
@@ -367,11 +448,12 @@ struct CreazioneSpot: View {
         
         modelContext.insert(nuovoSpot)
         try? modelContext.save()
+        NotificationCenter.default.post(name: .spotDidUpdate, object: nil)
         
-        // Reset del form
         nomeSpot = ""
         noteViaggio = ""
         nuovaTipologia = ""
+        categoriaCustomSelezionata = nil
         tipologia = .panorama
         iconColor = .blue
         loadedImages.removeAll()

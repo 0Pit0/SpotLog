@@ -5,6 +5,10 @@ import CoreLocation
 import Combine
 import UIKit
 
+extension Notification.Name {
+    static let spotDidUpdate = Notification.Name("spotDidUpdate")
+}
+
 enum StileMappa: String, CaseIterable, Identifiable {
     case standard = "Standard"
     case ibrida = "Ibrida"
@@ -74,6 +78,10 @@ final class FavoritePlaces {
     var swiftUIColor: Color {
         Color(hex: colorHex) ?? .blue
     }
+    
+    var markerID: String {
+        "\(id.uuidString)-\(colorHex)-\(icon)-\(name)-\(latitude)-\(longitude)"
+    }
 }
 
 extension FavoritePlaces {
@@ -117,15 +125,27 @@ extension Color {
         var b: CGFloat = 0
         var a: CGFloat = 0
         
-        guard uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) else {
-            return "#007AFF"
+        if uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) {
+            return String(
+                format: "#%02X%02X%02X",
+                Int(round(min(max(r, 0), 1) * 255)),
+                Int(round(min(max(g, 0), 1) * 255)),
+                Int(round(min(max(b, 0), 1) * 255))
+            )
         }
-        return String(
-            format: "#%02X%02X%02X",
-            Int(round(r * 255)),
-            Int(round(g * 255)),
-            Int(round(b * 255))
-        )
+        
+        if let sRGB = CGColorSpace(name: CGColorSpace.sRGB),
+           let cgColor = uiColor.cgColor.converted(to: sRGB, intent: .defaultIntent, options: nil),
+           let components = cgColor.components, components.count >= 3 {
+            return String(
+                format: "#%02X%02X%02X",
+                Int(round(min(max(components[0], 0), 1) * 255)),
+                Int(round(min(max(components[1], 0), 1) * 255)),
+                Int(round(min(max(components[2], 0), 1) * 255))
+            )
+        }
+        
+        return "#007AFF"
     }
 }
 
@@ -143,7 +163,7 @@ struct Pagina: View {
             set: { stileMappaRaw = $0.rawValue }
         )
     }
-
+    
     private var tagsDisponibili: [(nome: String, icona: String)] {
         var base: [(String, String)] = [("Tutti", "map.fill")]
         for tipo in TipologiaSpot.allCases where tipo != .nuovaTipologia {
@@ -167,7 +187,6 @@ struct Pagina: View {
             stileMappa: stileMappaBinding.wrappedValue
         )
         .onChange(of: places) { _, _ in
-            // Se la categoria filtrata non esiste più perché i suoi spot sono stati eliminati, torna a "Tutti"
             if !tagsDisponibili.contains(where: { $0.nome.localizedCaseInsensitiveCompare(filtroSelezionato) == .orderedSame }) {
                 filtroSelezionato = "Tutti"
             }
@@ -348,7 +367,10 @@ struct UserLocationMap: View {
     @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var places: [FavoritePlaces]
     @StateObject private var locationManager = LocationManager()
     @State private var position: MapCameraPosition = .automatic
-    @State private var selectedPlace: FavoritePlaces?
+    @State private var haCentratoSuUtente = false
+    @State private var mapSelection: FavoritePlaces?
+    @State private var sheetPlace: FavoritePlaces?
+    @State private var refreshVersion: Int = 0
 
     private var placesFiltrati: [FavoritePlaces] {
         places.filter { place in
@@ -365,27 +387,48 @@ struct UserLocationMap: View {
         }
     }
 
+    private var mapRenderID: String {
+        let firmaMarkers = placesFiltrati.map(\.markerID).joined(separator: "|")
+        return "\(refreshVersion)-\(firmaMarkers)"
+    }
+
     var body: some View {
-        Map(position: $position, selection:$selectedPlace) {
+        Map(position: $position, selection:$mapSelection) {
             UserAnnotation()
 
-            ForEach(placesFiltrati) { place in
+            ForEach(placesFiltrati, id: \.markerID) { place in
                 Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
                     .tint(place.swiftUIColor)
                     .tag(place)
             }
         }
+        .id(mapRenderID)
         .mapStyle(stileMappa.mapStyle)
         .mapControls {
             MapUserLocationButton()
             MapCompass()
         }
-        .sheet(item: $selectedPlace) { place in
+        .onMapCameraChange(frequency: .onEnd) { context in
+            position = .region(context.region)
+        }
+        .onChange(of: mapSelection) { _, newValue in
+            if let newValue {
+                sheetPlace = newValue
+                mapSelection = nil
+            }
+        }
+        .sheet(item: $sheetPlace, onDismiss: {
+            refreshVersion += 1
+        }) { place in
             Dettaglio(place: place)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .spotDidUpdate)) { _ in
+            refreshVersion += 1
         }
         .onAppear { locationManager.start() }
         .onChange(of: locationManager.lastLocation) { _, newValue in
-            guard let coordinate = newValue?.coordinate else { return }
+            guard !haCentratoSuUtente, let coordinate = newValue?.coordinate else { return }
+            haCentratoSuUtente = true
             position = .region(
                 MKCoordinateRegion(
                     center: coordinate,
