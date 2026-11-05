@@ -74,7 +74,7 @@ struct HomePage: View {
                 }
             Preferiti()
                 .tabItem {
-                    Label("Preferiti", systemImage: "star.fill") }
+                    Label("Spots", systemImage: "mappin") }
         }
     }
 }
