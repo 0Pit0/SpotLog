@@ -6,7 +6,7 @@ struct CreazioneSpot: View {
     @State private var noteViaggio: String
     @State private var nuovaTipologia: String
     @State private var iconColor: Color
-    private var elencoTipologie: [String] = {"Monumento", "Natura","Ristoro"}
+    private let elencoTipologie: [String] = ["Monumento", "Natura", "Ristoro", "Cultura", "Spiaggia", "Divertimento", "Shopping", "Nuova Tipologia"]
     init(tipologia: Int = 0,
          nomeSpot: String = "",
          noteViaggio: String = "",
