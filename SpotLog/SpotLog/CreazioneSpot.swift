@@ -1,5 +1,6 @@
 import SwiftUI
 import MapKit
+import PhotosUI
 
 enum TipologiaSpot: Int, CaseIterable, Identifiable {
     case panorama = 0
@@ -43,12 +44,43 @@ enum TipologiaSpot: Int, CaseIterable, Identifiable {
     }
 }
 
+struct StarRatingView: View {
+    @Binding var rating: Int
+    var maxRating: Int = 5
+
+    var body: some View {
+        HStack {
+            ForEach(1...maxRating, id: \.self) { number in
+                Button {
+                    if rating == number {
+                        rating = 0
+                    } else {
+                        rating = number
+                    }
+                } label: {
+                    Image(systemName: number <= rating ? "star.fill" : "star")
+                        .foregroundStyle(number <= rating ? .yellow : .gray.opacity(0.4))
+                        .font(.title3)
+                }
+                .buttonStyle(.plain) // Evita che il tocco attivi l'intera riga del Form
+            }
+        }
+    }
+}
+
 struct CreazioneSpot: View {
     @State private var tipologia: TipologiaSpot = .panorama
     @State private var nomeSpot: String = ""
     @State private var noteViaggio: String = ""
     @State private var nuovaTipologia: String = ""
     @State private var iconColor: Color = .blue
+    
+    // Gestione Immagini
+    @State private var selectedItems: [PhotosPickerItem] = []
+    @State private var loadedImages: [UIImage] = []
+    
+    // Stato Valutazione
+    @State private var valutazione: Int = 0
 
     var body: some View {
         NavigationStack {
@@ -94,8 +126,59 @@ struct CreazioneSpot: View {
                     TextField("Nome spot", text: $nomeSpot)
                     TextField("Note viaggio", text: $noteViaggio, axis: .vertical)
                 }
+
+                Section("Foto Spot") {
+                    if !loadedImages.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(0..<loadedImages.count, id: \.self) { index in
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(uiImage: loadedImages[index])
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                        Button {
+                                            loadedImages.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "xmark.circle.fill")
+                                                .foregroundStyle(.white, .red)
+                                        }
+                                        .offset(x: 4, y: -4)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
+                    PhotosPicker(
+                        selection: $selectedItems,
+                        matching: .images
+                    ) {
+                        Label("Aggiungi Foto", systemImage: "photo.badge.plus")
+                    }
+                }
+
+                Section("Valutazione") {
+                    LabeledContent("Voto") {
+                        StarRatingView(rating: $valutazione)
+                    }
+                }
             }
             .navigationTitle("Creazione Spot")
+            .onChange(of: selectedItems) { _, newItems in
+                Task {
+                    for item in newItems {
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: data) {
+                            loadedImages.append(uiImage)
+                        }
+                    }
+                    selectedItems.removeAll()
+                }
+            }
         }
     }
 }
