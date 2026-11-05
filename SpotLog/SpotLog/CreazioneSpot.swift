@@ -1,54 +1,89 @@
 import SwiftUI
 
-struct CreazioneSpot: View {
-    @State private var tipologia: Int
-    @State private var nomeSpot: String
-    @State private var noteViaggio: String
-    @State private var nuovaTipologia: String
-    @State private var iconColor: Color
-    private let elencoTipologie: [String] = ["Monumento", "Natura", "Ristoro", "Cultura", "Spiaggia", "Divertimento", "Shopping", "Nuova Tipologia"]
-    init(tipologia: Int = 0,
-         nomeSpot: String = "",
-         noteViaggio: String = "",
-         nuovaTipologia: String = "",
-         iconColor: Color = .blue) {
-        _tipologia = State(initialValue: tipologia)
-        _nomeSpot = State(initialValue: nomeSpot)
-        _noteViaggio = State(initialValue: noteViaggio)
-        _nuovaTipologia = State(initialValue: nuovaTipologia)
-        _iconColor = State(initialValue: iconColor)
+import SwiftUI
+
+enum TipologiaSpot: Int, CaseIterable, Identifiable {
+    case panorama = 0
+    case monumento = 1
+    case natura = 2
+    case ristoro = 3
+    case cultura = 4
+    case spiaggia = 5
+    case divertimento = 6
+    case shopping = 7
+    case nuovaTipologia = 8
+
+    var id: Int { rawValue }
+
+    var titolo: String {
+        switch self {
+        case .panorama: return "Panorama"
+        case .monumento: return "Monumento"
+        case .natura: return "Natura"
+        case .ristoro: return "Ristoro"
+        case .cultura: return "Cultura"
+        case .spiaggia: return "Spiaggia"
+        case .divertimento: return "Divertimento"
+        case .shopping: return "Shopping"
+        case .nuovaTipologia: return "Nuova Tipologia"
+        }
     }
 
+    var icona: String {
+        switch self {
+        case .panorama: return "mountain.2"
+        case .monumento: return "building.columns"
+        case .natura: return "tree"
+        case .ristoro: return "fork.knife"
+        case .cultura: return "book"
+        case .spiaggia: return "water.waves"
+        case .divertimento: return "party.popper"
+        case .shopping: return "cart"
+        case .nuovaTipologia: return "star"
+        }
+    }
+}
+
+struct CreazioneSpot: View {
+    @State private var tipologia: TipologiaSpot = .panorama
+    @State private var nomeSpot: String = ""
+    @State private var noteViaggio: String = ""
+    @State private var nuovaTipologia: String = ""
+    @State private var iconColor: Color = .blue
+
     var body: some View {
-        VStack{
-            Text("Creazione Spot").font(Font.largeTitle)
-                    
-            //mettere mappa
-                    
+        VStack {
+            Text("Creazione Spot")
+                .font(.largeTitle)
+            
+            // TODO: Inserire Mappa
+            
             Form {
                 Section("Stile Spot") {
-                    
-                    Picker("Icona", selection: $tipologia) {
-                        HStack{
-                            Image(systemName: "mountain.2")
-                            Text("Montagna")
-                        }.tag(0)
-                        Image(systemName: "building.columns").tag(1)
-                        Image(systemName: "tree").tag(2)
-                        Image(systemName: "fork.knife").tag(3)
-                        Image(systemName: "book").tag(4)
-                        Image(systemName: "water.waves").tag(5)
-                        Image(systemName: "party.popper").tag(6)
-                        Image(systemName: "cart").tag(7)
-                        Image(systemName: "star").tag(8)
+                    LabeledContent("Icona") {
+                        Menu {
+                            Picker("", selection: $tipologia) {
+                                ForEach(TipologiaSpot.allCases) { tipo in
+                                    Label(tipo.titolo, systemImage: tipo.icona)
+                                        .tag(tipo)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(tipologia.titolo)
+                                Image(systemName: tipologia.icona)
+                            }
+                        }
                     }
-                    .pickerStyle(.menu)
                     .tint(iconColor)
-                    if tipologia == 8 {
+
+                    if tipologia == .nuovaTipologia {
                         TextField("Nuova tipologia", text: $nuovaTipologia)
                     }
+
                     ColorPicker("Colore", selection: $iconColor)
                 }
+
                 Section("Dettagli") {
                     TextField("Nome spot", text: $nomeSpot)
                     TextField("Note viaggio", text: $noteViaggio, axis: .vertical)
@@ -58,21 +93,6 @@ struct CreazioneSpot: View {
     }
 }
 
-struct CustomPick: View {
-    let imageName: String
-    let text: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: imageName)
-            Text(text)
-            Spacer()
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal)
-    }
-}
-
 #Preview {
-    CreazioneSpot(tipologia: 0, nomeSpot: "", noteViaggio: "", nuovaTipologia: "", iconColor: .blue)
+    CreazioneSpot()
 }
