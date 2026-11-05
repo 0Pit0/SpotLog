@@ -8,6 +8,7 @@ struct CreazioneSpot: View {
     @State private var iconColor = Color.blue
     var body: some View {
         VStack{
+            Text("Creazione Spot").font(Font.largeTitle).bold()
             HStack{
                 Text("Tipologia:")
                 Picker("Tipologia", selection: $tipologia) {
