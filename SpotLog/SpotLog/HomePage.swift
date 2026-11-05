@@ -5,6 +5,10 @@ import Combine
 
 struct Pagina: View {
     @State private var searchText: String = ""
+    
+    @State private var filtri: [String] = [
+        "Esplora", "Ristorante", "Panorama", "Ricordo", "Museo"
+    ]
 
     var body: some View {
         
@@ -27,12 +31,16 @@ struct Pagina: View {
             .padding(5)
             
             
-            
-            HStack{
-                Button("Explore"){
-                    
-                }
+            ScrollView(.horizontal) {
+                HStack{
+                    ForEach(filtri, id: \.self) { filtro in
+                        ButtonTipologie(text: filtro) {
+                            print("Hai premuto \(filtro)")
+                        }
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(5)
             }
+            
             UserLocationMap()
         }.background(Color.gray)
     }
@@ -40,6 +48,19 @@ struct Pagina: View {
 
 #Preview {
     HomePage()
+}
+
+struct ButtonTipologie: View {
+    var text: String!
+    var action: () -> Void = { }
+    
+    var body: some View {
+        Button(action: action){
+            Text(text)
+            
+        }.padding(7)
+            .background(Color.white).cornerRadius(16)
+    }
 }
 
 struct HomePage: View {
@@ -119,7 +140,7 @@ struct UserLocationMap: View {
 
     @State private var places: [FavoritePlaces] = [
         FavoritePlaces(name: "Duomo di Milano", icon: "star.fill", latitude: 45.4642, longitude: 9.1900),
-        FavoritePlaces(name: "Colosseo", icon: "home.fill", latitude: 41.8902, longitude: 12.4922)
+        FavoritePlaces(name: "Colosseo", icon: "house.fill", latitude: 41.8902, longitude: 12.4922)
     ]
 
     var body: some View {
@@ -127,7 +148,7 @@ struct UserLocationMap: View {
             UserAnnotation()
 
             ForEach(places) { place in
-                Marker(place.name, systemImage: "star.fill", coordinate: place.coordinate)
+                Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
                     .tint(.orange)
                     .tag(place)
             }
