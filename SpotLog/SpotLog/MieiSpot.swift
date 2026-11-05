@@ -95,7 +95,7 @@ extension SpotItem {
     ]
 }
 
-struct Preferiti: View {
+struct MieiSpot: View {
     @State private var spots: [SpotItem] = SpotItem.placeholderData
     @State private var testoRicerca: String = ""
     @State private var spotDaEliminare: SpotItem? = nil
@@ -228,5 +228,5 @@ struct RigaSpot: View {
 }
 
 #Preview {
-    Preferiti()
+    MieiSpot()
 }

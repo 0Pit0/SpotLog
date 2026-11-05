@@ -147,7 +147,7 @@ struct HomePage: View {
                 .tabItem {
                     Label("Creazione Spot", systemImage: "plus")
                 }
-            Preferiti()
+            MieiSpot()
                 .tabItem {
                     Label("Spots", systemImage: "mappin")
                 }
