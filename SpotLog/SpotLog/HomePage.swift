@@ -124,6 +124,7 @@ struct FavoritePlaces: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String
     var icon: String
+    var descrizione: String
     var latitude: Double
     var longitude: Double
     
@@ -139,8 +140,8 @@ struct UserLocationMap: View {
     @State private var favoritePlaces: FavoritePlaces?
 
     @State private var places: [FavoritePlaces] = [
-        FavoritePlaces(name: "Duomo di Milano", icon: "star.fill", latitude: 45.4642, longitude: 9.1900),
-        FavoritePlaces(name: "Colosseo", icon: "house.fill", latitude: 41.8902, longitude: 12.4922)
+        FavoritePlaces(name: "Duomo di Milano", icon: "star.fill", descrizione: "Bel posto molto antico e pieno di cose fantastiche e di fregna", latitude: 45.4642, longitude: 9.1900),
+        FavoritePlaces(name: "Colosseo", icon: "house.fill", descrizione: "Bel posto molto antico e pieno di cose fantastiche e di fregna", latitude: 41.8902, longitude: 12.4922)
     ]
 
     var body: some View {
