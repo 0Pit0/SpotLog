@@ -1,6 +1,5 @@
 import SwiftUI
-
-import SwiftUI
+import MapKit
 
 enum TipologiaSpot: Int, CaseIterable, Identifiable {
     case panorama = 0
@@ -52,20 +51,20 @@ struct CreazioneSpot: View {
     @State private var iconColor: Color = .blue
 
     var body: some View {
-        VStack {
-            Text("Creazione Spot")
-                .font(.largeTitle)
-            
-            UserLocationMap()
-                .frame(height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
-                )
-                .padding(.horizontal)
-            
+        NavigationStack {
             Form {
+                Section {
+                    UserLocationMap()
+                        .frame(height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                        )
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+
                 Section("Stile Spot") {
                     LabeledContent("Icona") {
                         Menu {
@@ -96,6 +95,7 @@ struct CreazioneSpot: View {
                     TextField("Note viaggio", text: $noteViaggio, axis: .vertical)
                 }
             }
+            .navigationTitle("Creazione Spot")
         }
     }
 }
