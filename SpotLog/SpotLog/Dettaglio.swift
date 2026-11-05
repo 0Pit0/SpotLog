@@ -1,38 +1,58 @@
 import SwiftUI
+import SwiftData
 import MapKit
 import CoreLocation
+import UIKit
 
 struct Dettaglio: View {
     let place: FavoritePlaces
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    // Stato per controllare la visibilità del foglio modale di modifica
     @State private var mostraModifica = false
+    @State private var mostraConfermaEliminazione = false
 
     var body: some View {
         NavigationStack {
             List {
-                Section() {
+                Section {
                     Map(initialPosition: .region(
                         MKCoordinateRegion(
                             center: place.coordinate,
                             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                         )
                     )) {
-                        Marker(place.name, coordinate: place.coordinate)
+                        Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
+                            .tint(place.swiftUIColor)
                     }
                     .frame(height: 200)
-                    .border(Color.gray, width: 1)
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    )
                     
                     Text(place.name)
                         .font(.title)
                         .fontWeight(.bold)
                     
-                    Text("Italia - 12 Aug 2021 - Monumento")
+                    Text("\(place.nazione) · \(place.dataCreazione.formatted(date: .abbreviated, time: .omitted)) · \(place.categoria)")
                         .font(.caption)
+                        .foregroundStyle(.secondary)
                     
-                    kmDaTe(place: place)
+                    HStack {
+                        kmDaTe(place: place)
+                        
+                        if place.valutazione > 0 {
+                            HStack(spacing: 2) {
+                                ForEach(1...5, id: \.self) { star in
+                                    Image(systemName: star <= place.valutazione ? "star.fill" : "star")
+                                        .font(.caption)
+                                        .foregroundStyle(star <= place.valutazione ? .yellow : .secondary.opacity(0.4))
+                                }
+                            }
+                        }
+                    }
                     
                     HStack {
                         Button {
@@ -41,32 +61,58 @@ struct Dettaglio: View {
                             HStack {
                                 Text("Indicazioni").bold().foregroundStyle(.white)
                                 Image(systemName: "location.fill").foregroundStyle(.white)
-                            }.padding(10)
-                                .background(Color.blue, in: Capsule())
-                                .cornerRadius(25)
-                        }.buttonStyle(.borderless)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.blue, in: Capsule())
+                        }
+                        .buttonStyle(.borderless)
                         
                         Spacer()
                 
-                        Button {
-                            print("Condividi")
-                        } label: {
+                        ShareLink(
+                            item: "\(place.name) (\(place.categoria)) - https://maps.apple.com/?ll=\(place.latitude),\(place.longitude)"
+                        ) {
                             HStack {
                                 Text("Condividi").bold()
                                 Image(systemName: "square.and.arrow.up")
-                            }.padding(10)
-                                .background(Color.gray.opacity(0.3), in: Capsule())
-                                .cornerRadius(25)
-                        }.buttonStyle(.borderless)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.secondary.opacity(0.2), in: Capsule())
+                        }
+                        .buttonStyle(.borderless)
                     }
-                    Text(place.descrizione)
                     
+                    if !place.fotoData.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(place.fotoData.indices, id: \.self) { idx in
+                                    if let uiImage = UIImage(data: place.fotoData[idx]) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 120, height: 95)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    
+                    if !place.descrizione.isEmpty {
+                        Text(place.descrizione)
+                            .font(.body)
+                    }
                 }
 
                 Section("Opzioni") {
-                    Button("Elimina") {
-                        print("ELIMINARE")
-                    }.foregroundStyle(.red)
+                    Button(role: .destructive) {
+                        mostraConfermaEliminazione = true
+                    } label: {
+                        Label("Elimina spot", systemImage: "trash")
+                    }
                 }
             }
             .navigationTitle(place.name)
@@ -80,6 +126,16 @@ struct Dettaglio: View {
             }
             .sheet(isPresented: $mostraModifica) {
                 ModificaSpot(place: place)
+            }
+            .alert("Eliminare \"\(place.name)\"?", isPresented: $mostraConfermaEliminazione) {
+                Button("Annulla", role: .cancel) { }
+                Button("Elimina", role: .destructive) {
+                    modelContext.delete(place)
+                    try? modelContext.save()
+                    dismiss()
+                }
+            } message: {
+                Text("Foto e note verranno rimosse dal dispositivo. L'azione non è reversibile.")
             }
         }
     }
@@ -101,6 +157,7 @@ struct kmDaTe: View {
     var body: some View {
         HStack {
             Image(systemName: "location.circle.fill")
+                .foregroundStyle(.blue)
             testoDistanza
                 .font(.caption)
             Spacer()
@@ -127,5 +184,16 @@ struct kmDaTe: View {
 }
 
 #Preview {
-    Dettaglio(place: FavoritePlaces(name: "Colosseo", icon: "home.fill", descrizione: "Bel posto molto antico e pieno di cose fantastiche", latitude: 41.8902, longitude: 12.4922))
+    Dettaglio(
+        place: FavoritePlaces(
+            name: "Colosseo",
+            icon: "building.columns",
+            descrizione: "Anfiteatro Flavio nel cuore di Roma.",
+            categoria: "Monumento",
+            colorHex: "#FF9500",
+            latitude: 41.8902,
+            longitude: 12.4922
+        )
+    )
+    .modelContainer(for: FavoritePlaces.self, inMemory: true)
 }

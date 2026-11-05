@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct SpotLogApp: App {
@@ -6,5 +7,6 @@ struct SpotLogApp: App {
         WindowGroup {
             HomePage()
         }
+        .modelContainer(for: FavoritePlaces.self)
     }
 }

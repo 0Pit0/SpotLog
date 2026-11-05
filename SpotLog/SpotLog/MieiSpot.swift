@@ -1,117 +1,28 @@
 import SwiftUI
+import SwiftData
 import CoreLocation
-
-// MARK: - Modello Placeholder (Sostituibile con @Model di SwiftData o CoreData)
-struct SpotItem: Identifiable, Hashable {
-    let id: UUID
-    var nome: String
-    var nazione: String
-    var note: String
-    var distanza: String
-    var icona: String
-    var latitudine: Double
-    var longitudine: Double
-    
-    init(
-        id: UUID = UUID(),
-        nome: String,
-        nazione: String,
-        note: String,
-        distanza: String,
-        icona: String = "star.fill",
-        latitudine: Double = 43.7629,
-        longitudine: Double = 11.2650
-    ) {
-        self.id = id
-        self.nome = nome
-        self.nazione = nazione
-        self.note = note
-        self.distanza = distanza
-        self.icona = icona
-        self.latitudine = latitudine
-        self.longitudine = longitudine
-    }
-    
-    var asFavoritePlace: FavoritePlaces {
-        FavoritePlaces(
-            id: id,
-            name: nome,
-            icon: icona,
-            descrizione: note,
-            latitude: latitudine,
-            longitude: longitudine
-        )
-    }
-}
-
-// MARK: - Dati Mock dal Wireframe (2c)
-extension SpotItem {
-    static let placeholderData: [SpotItem] = [
-        SpotItem(
-            nome: "Belvedere San Miniato",
-            nazione: "Italia",
-            note: "Tramonto pazzesco su Firenze, salire a piedi dalle scale di San Niccolò, portare qualcosa da bere...",
-            distanza: "1,2 km",
-            icona: "mountain.2",
-            latitudine: 43.7593,
-            longitudine: 11.2647
-        ),
-        SpotItem(
-            nome: "Trattoria da Mario",
-            nazione: "Italia",
-            note: "Solo pranzo, niente prenotazioni. Bistecca da dividere in due...",
-            distanza: "2,8 km",
-            icona: "fork.knife",
-            latitudine: 43.7764,
-            longitudine: 11.2539
-        ),
-        SpotItem(
-            nome: "Parco delle Cascine",
-            nazione: "Italia",
-            note: "Corsa domenicale lungo l'Arno...",
-            distanza: "4,1 km",
-            icona: "tree",
-            latitudine: 43.7820,
-            longitudine: 11.2190
-        ),
-        SpotItem(
-            nome: "Miradouro da Graça",
-            nazione: "Portogallo",
-            note: "Chiosco con vinho verde, meglio alle 19...",
-            distanza: "1.840 km",
-            icona: "mountain.2",
-            latitudine: 38.7163,
-            longitudine: -9.1315
-        ),
-        SpotItem(
-            nome: "Time Out Market",
-            nazione: "Portogallo",
-            note: "Pastéis de nata, banco a destra...",
-            distanza: "1.842 km",
-            icona: "fork.knife",
-            latitudine: 38.7071,
-            longitudine: -9.1459
-        )
-    ]
-}
+import UIKit
 
 struct MieiSpot: View {
-    @State private var spots: [SpotItem] = SpotItem.placeholderData
-    @State private var testoRicerca: String = ""
-    @State private var spotDaEliminare: SpotItem? = nil
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var spots: [FavoritePlaces]
+    @StateObject private var gestorePosizione = GestorePosizione()
     
-    private var spotsFiltrati: [SpotItem] {
-        guard !testoRicerca.trimmingCharacters(in: .whitespaces).isEmpty else {
-            return spots
-        }
+    @State private var testoRicerca: String = ""
+    @State private var spotDaEliminare: FavoritePlaces? = nil
+    
+    private var spotsFiltrati: [FavoritePlaces] {
+        let query = testoRicerca.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return spots }
         return spots.filter {
-            $0.nome.localizedCaseInsensitiveContains(testoRicerca) ||
-            $0.note.localizedCaseInsensitiveContains(testoRicerca) ||
-            $0.nazione.localizedCaseInsensitiveContains(testoRicerca)
+            $0.name.localizedCaseInsensitiveContains(query) ||
+            $0.descrizione.localizedCaseInsensitiveContains(query) ||
+            $0.nazione.localizedCaseInsensitiveContains(query) ||
+            $0.categoria.localizedCaseInsensitiveContains(query)
         }
     }
     
-    private var sezioniPerNazione: [(nazione: String, spots: [SpotItem])] {
+    private var sezioniPerNazione: [(nazione: String, spots: [FavoritePlaces])] {
         let raggruppati = Dictionary(grouping: spotsFiltrati, by: { $0.nazione })
         return raggruppati
             .map { (nazione: $0.key, spots: $0.value) }
@@ -125,12 +36,12 @@ struct MieiSpot: View {
                     Section {
                         ForEach(sezione.spots) { spot in
                             ZStack {
-                                NavigationLink(destination: Dettaglio(place: spot.asFavoritePlace)) {
+                                NavigationLink(destination: Dettaglio(place: spot)) {
                                     EmptyView()
                                 }
                                 .opacity(0)
                                 
-                                RigaSpot(spot: spot)
+                                RigaSpot(spot: spot, posizioneUtente: gestorePosizione.posizione)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button {
@@ -152,8 +63,10 @@ struct MieiSpot: View {
             .listStyle(.plain)
             .navigationTitle("I Miei Spot")
             .searchable(text: $testoRicerca, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cerca")
+            .onAppear { gestorePosizione.avvia() }
+            .onDisappear { gestorePosizione.ferma() }
             .alert(
-                spotDaEliminare.map { "Eliminare \"\($0.nome)\"?" } ?? "Eliminare spot?",
+                spotDaEliminare.map { "Eliminare \"\($0.name)\"?" } ?? "Eliminare spot?",
                 isPresented: Binding(
                     get: { spotDaEliminare != nil },
                     set: { if !$0 { spotDaEliminare = nil } }
@@ -172,52 +85,75 @@ struct MieiSpot: View {
             .overlay {
                 if spotsFiltrati.isEmpty {
                     ContentUnavailableView(
-                        "Nessuno spot trovato",
+                        spots.isEmpty ? "Nessuno spot salvato" : "Nessuno spot trovato",
                         systemImage: "mappin.slash",
-                        description: Text("Non ci sono spot corrispondenti alla tua ricerca.")
+                        description: Text(
+                            spots.isEmpty
+                            ? "Aggiungi il tuo primo posto dalla scheda Creazione Spot."
+                            : "Non ci sono spot corrispondenti alla tua ricerca."
+                        )
                     )
                 }
             }
         }
     }
     
-    // MARK: - Funzione di eliminazione (Punto di aggancio per il futuro DB)
-    private func eliminaSpot(_ spot: SpotItem) {
+    private func eliminaSpot(_ spot: FavoritePlaces) {
         withAnimation {
-            spots.removeAll { $0.id == spot.id }
+            modelContext.delete(spot)
+            try? modelContext.save()
         }
         spotDaEliminare = nil
     }
 }
 
 struct RigaSpot: View {
-    let spot: SpotItem
+    let spot: FavoritePlaces
+    var posizioneUtente: CLLocation?
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.systemGray5))
-                .frame(width: 56, height: 56)
+            // Mostra la prima foto salvata oppure il badge con l'icona e il colore dello spot
+            if let firstPhotoData = spot.fotoData.first,
+               let uiImage = UIImage(data: firstPhotoData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(spot.swiftUIColor.opacity(0.18))
+                    .frame(width: 56, height: 56)
+                    .overlay {
+                        Image(systemName: spot.icon)
+                            .font(.title3)
+                            .foregroundStyle(spot.swiftUIColor)
+                    }
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(spot.nome)
+                    Text(spot.name)
                         .font(.headline)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                     
                     Spacer(minLength: 4)
                     
-                    HStack(spacing: 3) {
-                        Image(systemName: "location.fill")
-                            .font(.caption2)
-                        Text(spot.distanza)
-                            .font(.caption)
-                            .fontWeight(.medium)
+                    if let posizioneUtente {
+                        HStack(spacing: 3) {
+                            Image(systemName: "location.fill")
+                                .font(.caption2)
+                            Text(spot.distanzaFormattata(da: posizioneUtente))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(.blue)
                     }
-                    .foregroundStyle(.blue)
                 }
                 
-                Text(spot.note)
+                Text(spot.descrizione.isEmpty ? spot.categoria : spot.descrizione)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -229,4 +165,5 @@ struct RigaSpot: View {
 
 #Preview {
     MieiSpot()
+        .modelContainer(for: FavoritePlaces.self, inMemory: true)
 }

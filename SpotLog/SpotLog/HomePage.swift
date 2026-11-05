@@ -1,7 +1,9 @@
 import SwiftUI
+import SwiftData
 import MapKit
 import CoreLocation
 import Combine
+import UIKit
 
 enum StileMappa: String, CaseIterable, Identifiable {
     case standard = "Standard"
@@ -19,21 +21,157 @@ enum StileMappa: String, CaseIterable, Identifiable {
     }
 }
 
+@Model
+final class FavoritePlaces {
+    @Attribute(.unique) var id: UUID
+    var name: String
+    var icon: String
+    var descrizione: String
+    var categoria: String
+    var tipologiaRaw: Int
+    var colorHex: String
+    var nazione: String
+    var dataCreazione: Date
+    var valutazione: Int
+    var latitude: Double
+    var longitude: Double
+    @Attribute(.externalStorage) var fotoData: [Data]
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        icon: String = "mountain.2",
+        descrizione: String = "",
+        categoria: String = "Panorama",
+        tipologiaRaw: Int = 0,
+        colorHex: String = "#007AFF",
+        nazione: String = "Italia",
+        dataCreazione: Date = .now,
+        valutazione: Int = 0,
+        latitude: Double,
+        longitude: Double,
+        fotoData: [Data] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.descrizione = descrizione
+        self.categoria = categoria
+        self.tipologiaRaw = tipologiaRaw
+        self.colorHex = colorHex
+        self.nazione = nazione
+        self.dataCreazione = dataCreazione
+        self.valutazione = valutazione
+        self.latitude = latitude
+        self.longitude = longitude
+        self.fotoData = fotoData
+    }
+    
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+    
+    var swiftUIColor: Color {
+        Color(hex: colorHex) ?? .blue
+    }
+}
+
+extension FavoritePlaces {
+    func distanzaFormattata(da posizione: CLLocation) -> String {
+        let destinazione = CLLocation(latitude: latitude, longitude: longitude)
+        let metri = posizione.distance(from: destinazione)
+
+        if metri < 1000 {
+            return "\(Int(metri)) m"
+        }
+        let km = Measurement(value: metri / 1000, unit: UnitLength.kilometers)
+        return km.formatted(
+            .measurement(
+                width: .abbreviated,
+                usage: .asProvided,
+                numberFormatStyle: .number.precision(.fractionLength(1))
+            )
+        )
+    }
+}
+
+extension Color {
+    init?(hex: String) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+        
+        var rgb: UInt64 = 0
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
+        
+        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgb & 0x0000FF) / 255.0
+        
+        self.init(red: r, green: g, blue: b)
+    }
+    
+    func toHex() -> String {
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        
+        guard uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return "#007AFF"
+        }
+        return String(
+            format: "#%02X%02X%02X",
+            Int(round(r * 255)),
+            Int(round(g * 255)),
+            Int(round(b * 255))
+        )
+    }
+}
+
 struct Pagina: View {
+    @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var places: [FavoritePlaces]
+    
+    @AppStorage("stileMappa") private var stileMappaRaw: String = StileMappa.standard.rawValue
+    
     @State private var searchText: String = ""
     @State private var filtroSelezionato: String = "Tutti"
-    @State private var stileMappa: StileMappa = .standard
     
-    private let filtri: [String] = [
-        "Tutti", "Ristorante", "Panorama", "Ricordo", "Museo"
-    ]
+    private var stileMappaBinding: Binding<StileMappa> {
+        Binding(
+            get: { StileMappa(rawValue: stileMappaRaw) ?? .standard },
+            set: { stileMappaRaw = $0.rawValue }
+        )
+    }
+
+    private var tagsDisponibili: [(nome: String, icona: String)] {
+        var base: [(String, String)] = [("Tutti", "map.fill")]
+        for tipo in TipologiaSpot.allCases where tipo != .nuovaTipologia {
+            base.append((tipo.titolo, tipo.icona))
+        }
+        
+        for place in places {
+            let cat = place.categoria.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cat.isEmpty else { continue }
+            if !base.contains(where: { $0.0.localizedCaseInsensitiveCompare(cat) == .orderedSame }) {
+                base.append((cat, place.icon))
+            }
+        }
+        return base
+    }
 
     var body: some View {
         UserLocationMap(
             searchText: searchText,
             filtroSelezionato: filtroSelezionato,
-            stileMappa: stileMappa
+            stileMappa: stileMappaBinding.wrappedValue
         )
+        .onChange(of: places) { _, _ in
+            // Se la categoria filtrata non esiste più perché i suoi spot sono stati eliminati, torna a "Tutti"
+            if !tagsDisponibili.contains(where: { $0.nome.localizedCaseInsensitiveCompare(filtroSelezionato) == .orderedSame }) {
+                filtroSelezionato = "Tutti"
+            }
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 10) {
                 HStack(spacing: 10) {
@@ -57,10 +195,10 @@ struct Pagina: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+                    .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
                     
                     Menu {
-                        Picker("Stile Mappa", selection: $stileMappa) {
+                        Picker("Stile Mappa", selection: stileMappaBinding) {
                             ForEach(StileMappa.allCases) { stile in
                                 Text(stile.rawValue).tag(stile)
                             }
@@ -83,20 +221,21 @@ struct Pagina: View {
                             .foregroundStyle(.primary)
                             .frame(width: 44, height: 44)
                             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+                            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
                     }
                 }
                 .padding(.horizontal, 16)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(filtri, id: \.self) { filtro in
+                        ForEach(tagsDisponibili, id: \.nome) { tag in
                             ButtonTipologie(
-                                text: filtro,
-                                isSelected: filtroSelezionato == filtro
+                                text: tag.nome,
+                                icon: tag.icona,
+                                isSelected: filtroSelezionato.localizedCaseInsensitiveCompare(tag.nome) == .orderedSame
                             ) {
                                 withAnimation(.snappy) {
-                                    filtroSelezionato = filtro
+                                    filtroSelezionato = tag.nome
                                 }
                             }
                         }
@@ -111,46 +250,52 @@ struct Pagina: View {
     }
 }
 
-#Preview {
-    HomePage()
-}
-
 struct ButtonTipologie: View {
     let text: String
+    var icon: String? = nil
     var isSelected: Bool = false
     var action: () -> Void = { }
     
     var body: some View {
         Button(action: action) {
-            Text(text)
-                .font(.subheadline)
-                .fontWeight(isSelected ? .semibold : .medium)
-                .foregroundStyle(isSelected ? Color(.systemBackground) : .primary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.regularMaterial))
-                )
-                .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+            HStack(spacing: 6) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.caption)
+                }
+                Text(text)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .medium)
+            }
+            .foregroundStyle(isSelected ? Color(.systemBackground) : .primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.regularMaterial))
+            )
+            .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
         }
         .buttonStyle(.plain)
     }
 }
 
 struct HomePage: View {
+    @State private var tabSelezionata: Int = 0
+
     var body: some View {
-        TabView {
+        TabView(selection: $tabSelezionata) {
             Pagina()
                 .tabItem { Label("Mappa", systemImage: "map") }
+                .tag(0)
+            
             CreazioneSpot()
-                .tabItem {
-                    Label("Creazione Spot", systemImage: "plus")
-                }
+                .tabItem { Label("Creazione Spot", systemImage: "plus") }
+                .tag(1)
+            
             MieiSpot()
-                .tabItem {
-                    Label("Spots", systemImage: "mappin")
-                }
+                .tabItem { Label("Spots", systemImage: "mappin") }
+                .tag(2)
         }
     }
 }
@@ -195,71 +340,15 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 }
 
-struct FavoritePlaces: Codable, Identifiable, Hashable {
-    var id = UUID()
-    var name: String
-    var icon: String
-    var descrizione: String
-    var categoria: String = "Panorama"
-    var latitude: Double
-    var longitude: Double
-    
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-    }
-}
-
-extension FavoritePlaces {
-    func distanzaFormattata(da posizione: CLLocation) -> String {
-        let destinazione = CLLocation(latitude: latitude, longitude: longitude)
-        let metri = posizione.distance(from: destinazione)
-
-        if metri < 1000 {
-            return "\(Int(metri)) m"
-        }
-        let km = Measurement(value: metri / 1000, unit: UnitLength.kilometers)
-        return km.formatted(.measurement(width: .abbreviated,
-                                         usage: .asProvided,
-                                         numberFormatStyle: .number.precision(.fractionLength(1))))
-    }
-}
-
 struct UserLocationMap: View {
-    // Valori di default per mantenere la compatibilità con CreazioneSpot()
     var searchText: String = ""
     var filtroSelezionato: String = "Tutti"
     var stileMappa: StileMappa = .standard
 
+    @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var places: [FavoritePlaces]
     @StateObject private var locationManager = LocationManager()
     @State private var position: MapCameraPosition = .automatic
-    @State private var favoritePlaces: FavoritePlaces?
-
-    @State private var places: [FavoritePlaces] = [
-        FavoritePlaces(
-            name: "Duomo di Milano",
-            icon: "mountain.2.fill",
-            descrizione: "Vista panoramica dalle terrazze del Duomo sul centro di Milano.",
-            categoria: "Panorama",
-            latitude: 45.4642,
-            longitude: 9.1900
-        ),
-        FavoritePlaces(
-            name: "Colosseo",
-            icon: "building.columns.fill",
-            descrizione: "Anfiteatro Flavio nel cuore archeologico di Roma.",
-            categoria: "Museo",
-            latitude: 41.8902,
-            longitude: 12.4922
-        ),
-        FavoritePlaces(
-            name: "Trattoria da Mario",
-            icon: "fork.knife",
-            descrizione: "Solo pranzo, bistecca alla fiorentina tradizionale.",
-            categoria: "Ristorante",
-            latitude: 43.7764,
-            longitude: 11.2539
-        )
-    ]
+    @State private var selectedPlace: FavoritePlaces?
 
     private var placesFiltrati: [FavoritePlaces] {
         places.filter { place in
@@ -269,19 +358,20 @@ struct UserLocationMap: View {
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             let matchTesto = query.isEmpty ||
                              place.name.localizedCaseInsensitiveContains(query) ||
-                             place.descrizione.localizedCaseInsensitiveContains(query)
+                             place.descrizione.localizedCaseInsensitiveContains(query) ||
+                             place.nazione.localizedCaseInsensitiveContains(query)
             
             return matchCategoria && matchTesto
         }
     }
 
     var body: some View {
-        Map(position: $position, selection: $favoritePlaces) {
+        Map(position: $position, selection:$selectedPlace) {
             UserAnnotation()
 
             ForEach(placesFiltrati) { place in
                 Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
-                    .tint(.orange)
+                    .tint(place.swiftUIColor)
                     .tag(place)
             }
         }
@@ -290,7 +380,7 @@ struct UserLocationMap: View {
             MapUserLocationButton()
             MapCompass()
         }
-        .sheet(item: $favoritePlaces) { place in
+        .sheet(item: $selectedPlace) { place in
             Dettaglio(place: place)
         }
         .onAppear { locationManager.start() }
@@ -306,30 +396,7 @@ struct UserLocationMap: View {
     }
 }
 
-struct DettaglioPosto: View {
-    let place: FavoritePlaces
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section("Nome") {
-                    Text(place.name)
-                        .font(.headline)
-                }
-
-                Section("Posizione") {
-                    Text("Latitudine: \(place.latitude)")
-                    Text("Longitudine: \(place.longitude)")
-                }
-            }
-            .navigationTitle(place.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Chiudi") { dismiss() }
-                }
-            }
-        }
-    }
+#Preview {
+    HomePage()
+        .modelContainer(for: FavoritePlaces.self, inMemory: true)
 }
