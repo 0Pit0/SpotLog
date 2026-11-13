@@ -332,12 +332,17 @@ struct CreazioneSpot: View {
             .navigationTitle("Creazione Spot")
             .onAppear { locationManager.start() }
             .onChange(of: locationManager.lastLocation) { _, posizione in
-                guard !haImpostatoPosizioneIniziale, let coord = posizione?.coordinate else { return }
-                haImpostatoPosizioneIniziale = true
-                cameraPosition = .region(MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)))
-                sposta(su: coord)
+                guard !haImpostatoPosizioneIniziale else { return }
+                centraSuPosizioneAttuale(posizione)
             }
         }
+    }
+
+    private func centraSuPosizioneAttuale(_ posizione: CLLocation?) {
+        guard let coord = posizione?.coordinate else { return }
+        haImpostatoPosizioneIniziale = true
+        cameraPosition = .region(MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)))
+        sposta(su: coord)
     }
 
     private func sposta(su coord: CLLocationCoordinate2D) {
@@ -354,6 +359,9 @@ struct CreazioneSpot: View {
         try? modelContext.save()
         NotificationCenter.default.post(name: .spotDidUpdate, object: nil)
         dati = DatiSpot()
+        // Il prossimo spot riparte dalla posizione attuale, non da quella appena salvata.
+        haImpostatoPosizioneIniziale = false
+        centraSuPosizioneAttuale(locationManager.lastLocation)
         onSalvato()
     }
 }
