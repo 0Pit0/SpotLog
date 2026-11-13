@@ -258,6 +258,8 @@ struct SelettorePosizioneSpot: View {
     let coordinata: CLLocationCoordinate2D
     let dati: DatiSpot
     var titoloPredefinito = "Spot"
+    /// Spot già salvati da mostrare come riferimento: sempre in grigio, senza toccare il loro colore salvato.
+    var altriSpot: [FavoritePlaces] = []
     let onTocco: (CLLocationCoordinate2D) -> Void
 
     var body: some View {
@@ -265,6 +267,10 @@ struct SelettorePosizioneSpot: View {
             MapReader { proxy in
                 Map(position: $cameraPosition) {
                     UserAnnotation()
+                    ForEach(altriSpot, id: \.markerID) { spot in
+                        Marker(spot.name, systemImage: spot.icon, coordinate: spot.coordinate)
+                            .tint(.gray)
+                    }
                     Marker(dati.nome.isEmpty ? titoloPredefinito : dati.nome, systemImage: dati.tipologia.icona, coordinate: coordinata)
                         .tint(dati.colore)
                 }
@@ -291,6 +297,7 @@ struct SelettorePosizioneSpot: View {
 
 struct CreazioneSpot: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var places: [FavoritePlaces]
     @StateObject private var locationManager = LocationManager()
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var coordinata = CLLocationCoordinate2D(latitude: 43.7696, longitude: 11.2558)
@@ -302,7 +309,7 @@ struct CreazioneSpot: View {
     var body: some View {
         NavigationStack {
             Form {
-                SelettorePosizioneSpot(cameraPosition: $cameraPosition, coordinata: coordinata, dati: dati, titoloPredefinito: "Nuovo Spot") { coord in
+                SelettorePosizioneSpot(cameraPosition: $cameraPosition, coordinata: coordinata, dati: dati, titoloPredefinito: "Nuovo Spot", altriSpot: places) { coord in
                     haImpostatoPosizioneIniziale = true
                     sposta(su: coord)
                 }
