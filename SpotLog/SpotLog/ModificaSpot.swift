@@ -105,7 +105,7 @@ struct ModificaSpot: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    )
+                    ).mapStyle(.imagery)
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
