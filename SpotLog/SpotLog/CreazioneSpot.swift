@@ -283,7 +283,7 @@ struct CreazioneSpot: View {
                     Text("Tocca un punto sulla mappa per spostare il segnalino dello spot.").font(.caption2)
                 }
                 .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+                .listRowBackground(Color.clear).mapStyle(.imagery)
 
                 CampiSpot(dati: $dati)
 
