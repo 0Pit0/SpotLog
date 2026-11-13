@@ -179,12 +179,6 @@ struct Pagina: View {
             haCentratoSuUtente = true
             position = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)))
         }
-        .onChange(of: filtroSelezionato) { _, nuovoFiltro in
-            guard nuovoFiltro == "Tutti" else { return }
-            withAnimation(.easeInOut(duration: 1.0)) {
-                position = .rect(.world)
-            }
-        }
         .onChange(of: places) {
             if !tags.contains(where: { $0.nome.uguale(filtroSelezionato) }) { filtroSelezionato = "Tutti" }
         }
@@ -236,6 +230,10 @@ struct Pagina: View {
                 HStack(spacing: 8) {
                     ForEach(tags, id: \.nome) { tag in
                         ButtonTipologie(text: tag.nome, icon: tag.icona, isSelected: filtroSelezionato.uguale(tag.nome)) {
+                            // De-zoom solo se "Tutti" era già selezionato (secondo tocco), non quando ci si arriva da un altro filtro.
+                            if tag.nome == "Tutti" && filtroSelezionato == "Tutti" {
+                                withAnimation(.easeInOut(duration: 1.0)) { position = .rect(.world) }
+                            }
                             filtroSelezionato = tag.nome
                         }
                     }
