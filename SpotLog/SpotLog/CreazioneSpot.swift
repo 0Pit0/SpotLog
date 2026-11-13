@@ -158,44 +158,35 @@ struct CreazioneSpot: View {
         NavigationStack {
             Form {
                 Section {
-                    ZStack(alignment: .bottomLeading) {
-                        MapReader { proxy in
-                            Map(position: $cameraPosition) {
-                                UserAnnotation()
-                                
-                                Marker(
-                                    nomeSpot.isEmpty ? "Nuovo Spot" : nomeSpot,
-                                    systemImage: tipologia.icona,
-                                    coordinate: coordinateScelte
-                                )
-                                .tint(iconColor)
-                            }
-                            .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)")
-                            .onTapGesture { screenPoint in
-                                if let coord = proxy.convert(screenPoint, from: .local) {
-                                    coordinateScelte = coord
-                                    aggiornaNazione(per: coord)
-                                }
+                    MapReader { proxy in
+                        Map(position: $cameraPosition) {
+                            UserAnnotation()
+
+                            Marker(
+                                nomeSpot.isEmpty ? "Nuovo Spot" : nomeSpot,
+                                systemImage: tipologia.icona,
+                                coordinate: coordinateScelte
+                            )
+                            .tint(iconColor)
+                        }
+                        .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)")
+                        // Pulsante di centramento in alto a destra, come nella HomePage
+                        .mapControls {
+                            MapUserLocationButton()
+                        }
+                        .onTapGesture { screenPoint in
+                            if let coord = proxy.convert(screenPoint, from: .local) {
+                                coordinateScelte = coord
+                                aggiornaNazione(per: coord)
                             }
                         }
-                        .frame(height: 200)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        )
-                        
-                        HStack(spacing: 8) {
-                            Label(Date.now.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
-                            Label(nazioneRilevata, systemImage: "flag.fill")
-                        }
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.regularMaterial, in: Capsule())
-                        .padding(10)
                     }
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    )
                 } footer: {
                     Text("Tocca un punto sulla mappa per spostare il segnalino dello spot.")
                         .font(.caption2)
