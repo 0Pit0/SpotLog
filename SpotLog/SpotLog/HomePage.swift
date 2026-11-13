@@ -100,12 +100,20 @@ extension String {
     func uguale(_ altra: String) -> Bool { localizedCaseInsensitiveCompare(altra) == .orderedSame }
 }
 
+enum SchedaHome: Hashable {
+    case mappa, creazione, spots
+}
+
 struct HomePage: View {
+    @State private var schedaSelezionata: SchedaHome = .mappa
+
     var body: some View {
-        TabView {
-            Tab("Mappa", systemImage: "map") { Pagina() }
-            Tab("Creazione Spot", systemImage: "plus") { CreazioneSpot() }
-            Tab("Spots", systemImage: "mappin") { MieiSpot() }
+        TabView(selection: $schedaSelezionata) {
+            Tab("Mappa", systemImage: "map", value: .mappa) { Pagina() }
+            Tab("Creazione Spot", systemImage: "plus", value: .creazione) {
+                CreazioneSpot { schedaSelezionata = .mappa }
+            }
+            Tab("Spots", systemImage: "mappin", value: .spots) { MieiSpot() }
         }
     }
 }

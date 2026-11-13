@@ -253,7 +253,7 @@ struct CreazioneSpot: View {
     @State private var haImpostatoPosizioneIniziale = false
     @State private var nazioneRilevata = "Italia"
     @State private var dati = DatiSpot()
-    @State private var mostraConfermaSalvataggio = false
+    var onSalvato: () -> Void = {}
 
     var body: some View {
         NavigationStack {
@@ -303,9 +303,6 @@ struct CreazioneSpot: View {
                 cameraPosition = .region(MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)))
                 sposta(su: coord)
             }
-            .alert("Spot salvato!", isPresented: $mostraConfermaSalvataggio) {} message: {
-                Text("Il nuovo spot è stato aggiunto alla mappa e alla tua lista.")
-            }
         }
     }
 
@@ -324,7 +321,7 @@ struct CreazioneSpot: View {
         try? modelContext.save()
         NotificationCenter.default.post(name: .spotDidUpdate, object: nil)
         dati = DatiSpot()
-        mostraConfermaSalvataggio = true
+        onSalvato()
     }
 }
 
