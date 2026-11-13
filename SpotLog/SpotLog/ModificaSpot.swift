@@ -38,3 +38,22 @@ struct ModificaSpot: View {
         }
     }
 }
+
+#Preview {
+    let container = try! ModelContainer(for: FavoritePlaces.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let place = FavoritePlaces(
+        name: "Colosseo",
+        icon: "building.columns",
+        descrizione: "Anfiteatro Flavio nel cuore di Roma.",
+        categoria: "Monumento",
+        tipologiaRaw: TipologiaSpot.monumento.rawValue,
+        colorHex: "#FF9500",
+        nazione: "Italia",
+        valutazione: 4,
+        latitude: 41.8902,
+        longitude: 12.4922
+    )
+    container.mainContext.insert(place)
+    return ModificaSpot(place: place)
+        .modelContainer(container)
+}
