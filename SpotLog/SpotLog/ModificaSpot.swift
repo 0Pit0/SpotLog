@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 import MapKit
 import PhotosUI
-import UIKit
 
 struct ModificaSpot: View {
     @Bindable var place: FavoritePlaces
@@ -11,101 +10,73 @@ struct ModificaSpot: View {
     @Query private var places: [FavoritePlaces]
 
     @State private var tipologia: TipologiaSpot = .panorama
-    @State private var categoriaCustomSelezionata: String? = nil
-    @State private var nuovaTipologia: String = ""
-    @FocusState private var campoNuovaTipologiaFocussato: Bool
-
-    @State private var nomeSpot: String = ""
-    @State private var noteViaggio: String = ""
+    @State private var categoriaCustom: String?
+    @State private var nuovaTipologia = ""
+    @FocusState private var nuovaTipologiaFocus: Bool
+    @State private var nomeSpot = ""
+    @State private var noteViaggio = ""
     @State private var iconColor: Color = .blue
-    
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var loadedImages: [UIImage] = []
-    @State private var valutazione: Int = 0
-    @State private var fotoSelezionata: FotoSelezionata? = nil
+    @State private var valutazione = 0
+    @State private var fotoSelezionata: FotoSelezionata?
+    @State private var contatoreCentra = 0 // Incrementandolo la mappa viene ricreata e ricentrata sullo spot
 
-    // Ogni volta che aumenta, la mappa viene ricreata e torna alla initialPosition (lo spot)
-    @State private var contatoreCentra = 0
+    private let predefinite = TipologiaSpot.allCases.filter { $0 != .nuovaTipologia }
 
-    private var tipologiePredefinite: [TipologiaSpot] {
-        TipologiaSpot.allCases.filter { $0 != .nuovaTipologia }
+    private var categoriePersonalizzate: [(nome: String, count: Int)] {
+        let standard = Set(predefinite.map { $0.titolo.lowercased() })
+        let nomi = places.compactMap { spot -> String? in
+            let cat = spot.categoria.trimmed
+            let isCustom = spot.tipologiaRaw == TipologiaSpot.nuovaTipologia.rawValue || !standard.contains(cat.lowercased())
+            return !cat.isEmpty && isCustom ? cat : nil
+        }
+        return Dictionary(grouping: nomi) { $0.lowercased() }.values
+            .map { (nome: $0[0], count: $0.count) }
+            .sorted { $0.count != $1.count ? $0.count > $1.count : $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }
     }
 
-    private var categoriePersonalizzateEsistenti: [(nome: String, count: Int)] {
-        let nomiStandard = Set(tipologiePredefinite.map { $0.titolo.lowercased() })
-        var conteggi: [String: (nomeOriginale: String, count: Int)] = [:]
-        
-        for spot in places {
-            let cat = spot.categoria.trimmingCharacters(in: .whitespacesAndNewlines)
-            let chiave = cat.lowercased()
-            guard !chiave.isEmpty,
-                  spot.tipologiaRaw == TipologiaSpot.nuovaTipologia.rawValue || !nomiStandard.contains(chiave) else {
-                continue
-            }
-            if let esistente = conteggi[chiave] {
-                conteggi[chiave] = (esistente.nomeOriginale, esistente.count + 1)
-            } else {
-                conteggi[chiave] = (cat, 1)
+    private var mostraCampoNuovaTipologia: Bool { tipologia == .nuovaTipologia && categoriaCustom == nil }
+
+    private func categoria(fallback: String) -> String {
+        guard tipologia == .nuovaTipologia else { return tipologia.titolo }
+        let nome = (categoriaCustom ?? nuovaTipologia).trimmed
+        return nome.isEmpty ? fallback : nome
+    }
+
+    private func seleziona(_ tipo: TipologiaSpot, custom: String? = nil, focus: Bool = false) {
+        withAnimation(.snappy) {
+            tipologia = tipo
+            categoriaCustom = custom
+            nuovaTipologia = custom ?? ""
+            nuovaTipologiaFocus = focus
+        }
+    }
+
+    private func voce(_ titolo: String, icona: String, selezionata: Bool, azione: @escaping () -> Void) -> some View {
+        Button(action: azione) {
+            HStack {
+                Text(titolo)
+                Image(systemName: icona)
+                if selezionata { Image(systemName: "checkmark") }
             }
         }
-        
-        return conteggi.values
-            .sorted {
-                $0.count != $1.count
-                    ? $0.count > $1.count
-                    : $0.nomeOriginale.localizedCaseInsensitiveCompare($1.nomeOriginale) == .orderedAscending
-            }
-            .map { (nome: $0.nomeOriginale, count: $0.count) }
-    }
-
-    private func conteggioSpot(per tipo: TipologiaSpot) -> Int {
-        places.filter {
-            $0.categoria.localizedCaseInsensitiveCompare(tipo.titolo) == .orderedSame
-        }.count
-    }
-
-    private var mostraCampoNuovaTipologia: Bool {
-        tipologia == .nuovaTipologia && categoriaCustomSelezionata == nil
-    }
-
-    private var etichettaMenuTipologia: String {
-        if tipologia == .nuovaTipologia {
-            if let custom = categoriaCustomSelezionata {
-                return custom
-            }
-            let digitata = nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines)
-            return digitata.isEmpty ? "Nuova Tipologia…" : digitata
-        }
-        return tipologia.titolo
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Map(initialPosition: .region(
-                        MKCoordinateRegion(
-                            center: place.coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                        )
-                    )) {
+                    Map(initialPosition: .region(.init(center: place.coordinate, span: .init(latitudeDelta: 0.01, longitudeDelta: 0.01)))) {
                         UserAnnotation()
-
-                        Marker(
-                            nomeSpot.isEmpty ? place.name : nomeSpot,
-                            systemImage: tipologia.icona,
-                            coordinate: place.coordinate
-                        )
-                        .tint(iconColor)
+                        Marker(nomeSpot.isEmpty ? place.name : nomeSpot, systemImage: tipologia.icona, coordinate: place.coordinate)
+                            .tint(iconColor)
                     }
-                    // Forza il ridisegno del Marker dopo la modifica
-                    // e ricentra sullo spot quando premo il pulsante
+                    .mapStyle(.imagery)
+                    // Forza il ridisegno del Marker e ricentra la mappa quando premo il pulsante
                     .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)-\(contatoreCentra)")
-                    // Pulsante in alto a destra che riporta la mappa sullo spot
                     .overlay(alignment: .topTrailing) {
-                        Button {
-                            contatoreCentra += 1
-                        } label: {
+                        Button { contatoreCentra += 1 } label: {
                             Image(systemName: "mappin")
                                 .font(.title2)
                                 .foregroundStyle(Color.primary)
@@ -117,10 +88,7 @@ struct ModificaSpot: View {
                     }
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    ).mapStyle(.imagery)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.3)))
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
@@ -129,64 +97,31 @@ struct ModificaSpot: View {
                     LabeledContent("Tipologia") {
                         Menu {
                             Section("Predefinite") {
-                                ForEach(tipologiePredefinite) { tipo in
-                                    let count = conteggioSpot(per: tipo)
-                                    Button {
-                                        withAnimation(.snappy) {
-                                            tipologia = tipo
-                                            categoriaCustomSelezionata = nil
-                                            nuovaTipologia = ""
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Text(count > 0 ? "\(tipo.titolo) (\(count))" : tipo.titolo)
-                                            Image(systemName: tipo.icona)
-                                            if tipologia == tipo {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
+                                ForEach(predefinite) { tipo in
+                                    let count = places.count(where: { $0.categoria.localizedCaseInsensitiveCompare(tipo.titolo) == .orderedSame })
+                                    voce(count > 0 ? "\(tipo.titolo) (\(count))" : tipo.titolo, icona: tipo.icona, selezionata: tipologia == tipo) {
+                                        seleziona(tipo)
                                     }
                                 }
                             }
-
-                            if !categoriePersonalizzateEsistenti.isEmpty {
+                            let personalizzate = categoriePersonalizzate
+                            if !personalizzate.isEmpty {
                                 Section("Le tue categorie") {
-                                    ForEach(categoriePersonalizzateEsistenti, id: \.nome) { custom in
-                                        Button {
-                                            withAnimation(.snappy) {
-                                                tipologia = .nuovaTipologia
-                                                categoriaCustomSelezionata = custom.nome
-                                                nuovaTipologia = custom.nome
-                                            }
-                                        } label: {
-                                            HStack {
-                                                Text("\(custom.nome) (\(custom.count))")
-                                                Image(systemName: "star.fill")
-                                                if tipologia == .nuovaTipologia && categoriaCustomSelezionata == custom.nome {
-                                                    Image(systemName: "checkmark")
-                                                }
-                                            }
+                                    ForEach(personalizzate, id: \.nome) { custom in
+                                        voce("\(custom.nome) (\(custom.count))", icona: "star.fill", selezionata: tipologia == .nuovaTipologia && categoriaCustom == custom.nome) {
+                                            seleziona(.nuovaTipologia, custom: custom.nome)
                                         }
                                     }
                                 }
                             }
-
                             Section {
-                                Button {
-                                    withAnimation(.snappy) {
-                                        tipologia = .nuovaTipologia
-                                        categoriaCustomSelezionata = nil
-                                        nuovaTipologia = ""
-                                        campoNuovaTipologiaFocussato = true
-                                    }
-                                } label: {
-                                    Label("Nuova Tipologia…", systemImage: "plus.circle.fill")
+                                Button("Nuova Tipologia…", systemImage: "plus.circle.fill") {
+                                    seleziona(.nuovaTipologia, focus: true)
                                 }
                             }
                         } label: {
                             HStack(spacing: 6) {
-                                Text(etichettaMenuTipologia)
-                                    .fontWeight(.medium)
+                                Text(categoria(fallback: "Nuova Tipologia…")).fontWeight(.medium)
                                 Image(systemName: tipologia.icona)
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption2)
@@ -201,11 +136,10 @@ struct ModificaSpot: View {
 
                     if mostraCampoNuovaTipologia {
                         HStack {
-                            Image(systemName: "star.fill")
-                                .foregroundStyle(iconColor)
+                            Image(systemName: "star.fill").foregroundStyle(iconColor)
                             TextField("Nome nuova tipologia", text: $nuovaTipologia)
                                 .autocorrectionDisabled()
-                                .focused($campoNuovaTipologiaFocussato)
+                                .focused($nuovaTipologiaFocus)
                         }
                     }
 
@@ -221,33 +155,21 @@ struct ModificaSpot: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(loadedImages.indices, id: \.self) { index in
-                                ZStack(alignment: .topTrailing) {
-                                    Button {
-                                        fotoSelezionata = FotoSelezionata(indiceIniziale: index)
-                                    } label: {
-                                        Image(uiImage: loadedImages[index])
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 80, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                Button { fotoSelezionata = FotoSelezionata(indiceIniziale: index) } label: {
+                                    Image(uiImage: loadedImages[index])
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                }
+                                .overlay(alignment: .topTrailing) {
+                                    Button { loadedImages.remove(at: index) } label: {
+                                        Image(systemName: "xmark.circle.fill").foregroundStyle(.white, .red)
                                     }
-                                    .buttonStyle(.plain)
-
-                                    Button {
-                                        loadedImages.remove(at: index)
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(.white, .red)
-                                    }
-                                    .buttonStyle(.plain)
                                     .offset(x: 4, y: -4)
                                 }
                             }
-
-                            PhotosPicker(
-                                selection: $selectedItems,
-                                matching: .images
-                            ) {
+                            PhotosPicker(selection: $selectedItems, matching: .images) {
                                 RoundedRectangle(cornerRadius: 10)
                                     .fill(Color(.systemGray5))
                                     .frame(width: 80, height: 80)
@@ -257,61 +179,37 @@ struct ModificaSpot: View {
                                             .foregroundStyle(.secondary)
                                     }
                             }
-                            .buttonStyle(.plain)
                         }
+                        .buttonStyle(.plain)
                         .padding(.vertical, 4)
                     }
                 }
 
                 Section("Valutazione") {
-                    LabeledContent("Voto") {
-                        StarRatingView(rating: $valutazione)
-                    }
+                    LabeledContent("Voto") { StarRatingView(rating: $valutazione) }
                 }
             }
             .navigationTitle("Modifica Spot")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annulla") {
-                        dismiss()
-                    }
+                    Button("Annulla") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Salva") {
-                        salvaModifiche()
-                        dismiss()
-                    }
-                    .disabled(
-                        nomeSpot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                        (mostraCampoNuovaTipologia && nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    )
+                    Button("Salva") { salvaModifiche(); dismiss() }
+                        .disabled(nomeSpot.trimmed.isEmpty || (mostraCampoNuovaTipologia && nuovaTipologia.trimmed.isEmpty))
                 }
             }
-            .fullScreenCover(item: $fotoSelezionata) { selezione in
-                VisualizzatoreFotoFullScreen(
-                    immagini: loadedImages,
-                    indiceIniziale: selezione.indiceIniziale
-                )
+            .fullScreenCover(item: $fotoSelezionata) {
+                VisualizzatoreFotoFullScreen(immagini: loadedImages, indiceIniziale: $0.indiceIniziale)
             }
-            .onAppear {
-                nomeSpot = place.name
-                noteViaggio = place.descrizione
-                tipologia = TipologiaSpot(rawValue: place.tipologiaRaw) ?? .panorama
-                if tipologia == .nuovaTipologia {
-                    categoriaCustomSelezionata = place.categoria
-                    nuovaTipologia = place.categoria
-                }
-                iconColor = place.swiftUIColor
-                valutazione = place.valutazione
-                loadedImages = place.fotoData.compactMap { UIImage(data: $0) }
-            }
-            .onChange(of: selectedItems) { _, newItems in
+            .onAppear(perform: caricaDati)
+            .onChange(of: selectedItems) { _, items in
+                guard !items.isEmpty else { return }
                 Task {
-                    for item in newItems {
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let uiImage = UIImage(data: data) {
-                            loadedImages.append(uiImage)
+                    for item in items {
+                        if let data = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: data) {
+                            loadedImages.append(img)
                         }
                     }
                     selectedItems.removeAll()
@@ -319,30 +217,34 @@ struct ModificaSpot: View {
             }
         }
     }
-    
-    private func salvaModifiche() {
-        let categoriaScelta: String
+
+    private func caricaDati() {
+        nomeSpot = place.name
+        noteViaggio = place.descrizione
+        tipologia = TipologiaSpot(rawValue: place.tipologiaRaw) ?? .panorama
         if tipologia == .nuovaTipologia {
-            if let custom = categoriaCustomSelezionata {
-                categoriaScelta = custom
-            } else {
-                let pulita = nuovaTipologia.trimmingCharacters(in: .whitespacesAndNewlines)
-                categoriaScelta = pulita.isEmpty ? "Personalizzato" : pulita
-            }
-        } else {
-            categoriaScelta = tipologia.titolo
+            categoriaCustom = place.categoria
+            nuovaTipologia = place.categoria
         }
-        
-        place.name = nomeSpot.trimmingCharacters(in: .whitespacesAndNewlines)
-        place.descrizione = noteViaggio.trimmingCharacters(in: .whitespacesAndNewlines)
+        iconColor = place.swiftUIColor
+        valutazione = place.valutazione
+        loadedImages = place.fotoData.compactMap(UIImage.init(data:))
+    }
+
+    private func salvaModifiche() {
+        place.name = nomeSpot.trimmed
+        place.descrizione = noteViaggio.trimmed
         place.tipologiaRaw = tipologia.rawValue
         place.icon = tipologia.icona
-        place.categoria = categoriaScelta
+        place.categoria = categoria(fallback: "Personalizzato")
         place.colorHex = iconColor.toHex()
         place.valutazione = valutazione
         place.fotoData = loadedImages.compactMap { $0.jpegData(compressionQuality: 0.8) }
-        
         try? modelContext.save()
         NotificationCenter.default.post(name: .spotDidUpdate, object: nil)
     }
+}
+
+private extension String {
+    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 }
