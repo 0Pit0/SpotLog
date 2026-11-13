@@ -18,6 +18,9 @@ struct Dettaglio: View {
     @State private var mostraModifica = false
     @State private var mostraConfermaEliminazione = false
     @State private var fotoSelezionata: FotoSelezionata? = nil
+    
+    // Ogni volta che aumenta, la mappa viene ricreata e torna alla initialPosition (lo spot)
+    @State private var contatoreCentra = 0
 
     var body: some View {
         NavigationStack {
@@ -34,11 +37,22 @@ struct Dettaglio: View {
                         Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
                             .tint(place.swiftUIColor)
                     }
-                    // Forza il ridisegno del Marker anche nella mappa di Dettaglio dopo la modifica
-                    .id(place.markerID)
-                    // Pulsante di centramento in alto a destra, come nella HomePage
-                    .mapControls {
-                        MapUserLocationButton()
+                    // Forza il ridisegno del Marker dopo la modifica
+                    // e ricentra sullo spot quando premo il pulsante
+                    .id("\(place.markerID)-\(contatoreCentra)")
+                    // Pulsante in alto a destra che riporta la mappa sullo spot
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            contatoreCentra += 1
+                        } label: {
+                            Image(systemName: "mappin")
+                                .font(.title2)
+                                .foregroundStyle(Color.primary)
+                                .padding(8)
+                                .background(.regularMaterial, in: Circle())
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(8)
                     }
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
