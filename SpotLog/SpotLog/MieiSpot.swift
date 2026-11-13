@@ -123,212 +123,248 @@ struct MieiSpot: View {
     
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(sezioniPerNazione, id: \.nazione) { sezione in
-                    Section {
-                        ForEach(sezione.spots) { spot in
-                            ZStack {
-                                NavigationLink(destination: Dettaglio(place: spot)) {
-                                    EmptyView()
-                                }
-                                .opacity(0)
-                                
-                                RigaSpot(spot: spot, posizioneUtente: gestorePosizione.posizione)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button {
-                                    spotDaEliminare = spot
-                                } label: {
-                                    Label("Elimina", systemImage: "trash")
-                                }
-                                .tint(.red)
-                            }
-                        }
-                    } header: {
-                        Text("\(sezione.nazione.uppercased()) · \(sezione.spots.count)")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
+            listaSpot
+                .listStyle(.plain)
+                .navigationTitle("I Miei Spot")
+                .navigationBarTitleDisplayMode(.large)
+                .searchable(text: $testoRicerca, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cerca nome, note o nazione")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        menuFiltri
                     }
                 }
-            }
-            .listStyle(.plain)
-            .navigationTitle("I Miei Spot")
-            .searchable(text: $testoRicerca, placement: .navigationBarDrawer(displayMode: .always), prompt: "Cerca nome, note o nazione")
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if !spots.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ChipFiltroSpot(
-                                titolo: "Tutte (\(spots.count))",
-                                icona: "tray.full.fill",
-                                attivo: filtroCategoria == "Tutte"
-                            ) {
-                                withAnimation(.snappy) { filtroCategoria = "Tutte" }
-                            }
-                            
-                            ForEach(categorieDisponibili, id: \.nome) { cat in
-                                ChipFiltroSpot(
-                                    titolo: "\(cat.nome) (\(cat.count))",
-                                    icona: cat.icona,
-                                    attivo: filtroCategoria.localizedCaseInsensitiveCompare(cat.nome) == .orderedSame
-                                ) {
-                                    withAnimation(.snappy) {
-                                        if filtroCategoria.localizedCaseInsensitiveCompare(cat.nome) == .orderedSame {
-                                            filtroCategoria = "Tutte"
-                                        } else {
-                                            filtroCategoria = cat.nome
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Divider()
-                                .frame(height: 20)
-                            
-                            ChipFiltroSpot(
-                                titolo: "Con foto",
-                                icona: "photo.fill",
-                                attivo: soloConFoto
-                            ) {
-                                withAnimation(.snappy) { soloConFoto.toggle() }
-                            }
-                            
-                            ChipFiltroSpot(
-                                titolo: votoMinimo > 0 ? "\(votoMinimo)+ ★" : "4+ ★",
-                                icona: "star.fill",
-                                attivo: votoMinimo > 0
-                            ) {
-                                withAnimation(.snappy) {
-                                    votoMinimo = (votoMinimo > 0) ? 0 : 4
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    }
-                    .background(.bar)
+                .onChange(of: spots) { _, _ in
+                    controllaFiltri()
                 }
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Section("Ordina per") {
-                            Picker("Ordina per", selection: $ordinamento) {
-                                ForEach(OrdineSpot.allCases) { ordine in
-                                    Label(ordine.rawValue, systemImage: ordine.icona)
-                                        .tag(ordine)
-                                }
-                            }
-                        }
-                        
-                        Section("Filtra per Tipologia") {
-                            Picker("Tipologia", selection: $filtroCategoria) {
-                                Text("Tutte (\(spots.count))").tag("Tutte")
-                                ForEach(categorieDisponibili, id: \.nome) { cat in
-                                    Label("\(cat.nome) (\(cat.count))", systemImage: cat.icona)
-                                        .tag(cat.nome)
-                                }
-                            }
-                        }
-                        
-                        if nazioniDisponibili.count > 1 {
-                            Section("Filtra per Nazione") {
-                                Picker("Nazione", selection: $filtroNazione) {
-                                    Text("Tutte le nazioni").tag("Tutte")
-                                    ForEach(nazioniDisponibili, id: \.self) { nazione in
-                                        Text(nazione).tag(nazione)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Section("Altri Filtri") {
-                            Picker("Valutazione minima", selection: $votoMinimo) {
-                                Text("Qualsiasi voto").tag(0)
-                                Text("★★★ o superiore").tag(3)
-                                Text("★★★★ o superiore").tag(4)
-                                Text("★★★★★ (Solo 5 stelle)").tag(5)
-                            }
-                            
-                            Toggle(isOn: $soloConFoto) {
-                                Label("Solo spot con foto", systemImage: "photo")
-                            }
-                        }
-                        
-                        if haFiltriAttivi || ordinamento != .piuRecenti {
-                            Section {
-                                Button(role: .destructive) {
-                                    withAnimation {
-                                        reimpostaFiltri()
-                                    }
-                                } label: {
-                                    Label("Reimposta filtri e ordine", systemImage: "arrow.counterclockwise")
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: haFiltriAttivi ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                            .font(.title3)
+                .onAppear { gestorePosizione.avvia() }
+                .onDisappear { gestorePosizione.ferma() }
+                .alert(titoloAlert, isPresented: mostraAlert, presenting: spotDaEliminare) { spot in
+                    Button("Annulla", role: .cancel) {
+                        spotDaEliminare = nil
+                    }
+                    Button("Elimina", role: .destructive) {
+                        eliminaSpot(spot)
+                    }
+                } message: { _ in
+                    Text("Foto e note verranno rimosse dal dispositivo. L'azione non è reversibile.")
+                }
+                .overlay {
+                    if spotsFiltrati.isEmpty {
+                        vistaVuota
                     }
                 }
+        }
+    }
+
+    // MARK: - Pezzi della vista (separati per aiutare il compilatore)
+
+    private var listaSpot: some View {
+        List {
+            // I chip stanno dentro la List: così il titolo grande non sparisce su iOS 26
+            if !spots.isEmpty {
+                barraFiltri
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
             }
-            .onChange(of: spots) { _, _ in
-                if filtroCategoria != "Tutte" && !categorieDisponibili.contains(where: { $0.nome.localizedCaseInsensitiveCompare(filtroCategoria) == .orderedSame }) {
-                    filtroCategoria = "Tutte"
-                }
-                if filtroNazione != "Tutte" && !nazioniDisponibili.contains(filtroNazione) {
-                    filtroNazione = "Tutte"
-                }
-            }
-            .onAppear { gestorePosizione.avvia() }
-            .onDisappear { gestorePosizione.ferma() }
-            .alert(
-                spotDaEliminare.map { "Eliminare \"\($0.name)\"?" } ?? "Eliminare spot?",
-                isPresented: Binding(
-                    get: { spotDaEliminare != nil },
-                    set: { if !$0 { spotDaEliminare = nil } }
-                ),
-                presenting: spotDaEliminare
-            ) { spot in
-                Button("Annulla", role: .cancel) {
-                    spotDaEliminare = nil
-                }
-                Button("Elimina", role: .destructive) {
-                    eliminaSpot(spot)
-                }
-            } message: { _ in
-                Text("Foto e note verranno rimosse dal dispositivo. L'azione non è reversibile.")
-            }
-            .overlay {
-                if spotsFiltrati.isEmpty {
-                    ContentUnavailableView {
-                        Label(
-                            spots.isEmpty ? "Nessuno spot salvato" : "Nessuno spot trovato",
-                            systemImage: "mappin.slash"
-                        )
-                    } description: {
-                        Text(
-                            spots.isEmpty
-                            ? "Aggiungi il tuo primo posto dalla scheda Creazione Spot."
-                            : "Non ci sono spot corrispondenti ai filtri selezionati."
-                        )
-                    } actions: {
-                        if haFiltriAttivi || !testoRicerca.isEmpty {
-                            Button("Mostra tutti gli spot") {
-                                withAnimation {
-                                    reimpostaFiltri()
-                                    testoRicerca = ""
-                                }
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
+
+            ForEach(sezioniPerNazione, id: \.nazione) { sezione in
+                Section {
+                    ForEach(sezione.spots) { spot in
+                        rigaConLink(spot)
                     }
+                } header: {
+                    Text("\(sezione.nazione.uppercased()) · \(sezione.spots.count)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
     }
-    
+
+    private func rigaConLink(_ spot: FavoritePlaces) -> some View {
+        ZStack {
+            NavigationLink(destination: Dettaglio(place: spot)) {
+                EmptyView()
+            }
+            .opacity(0)
+
+            RigaSpot(spot: spot, posizioneUtente: gestorePosizione.posizione)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                spotDaEliminare = spot
+            } label: {
+                Label("Elimina", systemImage: "trash")
+            }
+            .tint(.red)
+        }
+    }
+
+    private var titoloAlert: String {
+        if let spot = spotDaEliminare {
+            return "Eliminare \"\(spot.name)\"?"
+        }
+        return "Eliminare spot?"
+    }
+
+    private var mostraAlert: Binding<Bool> {
+        Binding(
+            get: { spotDaEliminare != nil },
+            set: { if !$0 { spotDaEliminare = nil } }
+        )
+    }
+
+    private var barraFiltri: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ChipFiltroSpot(
+                    titolo: "Tutte (\(spots.count))",
+                    icona: "tray.full.fill",
+                    attivo: filtroCategoria == "Tutte"
+                ) {
+                    withAnimation(.snappy) { filtroCategoria = "Tutte" }
+                }
+                
+                ForEach(categorieDisponibili, id: \.nome) { cat in
+                    ChipFiltroSpot(
+                        titolo: "\(cat.nome) (\(cat.count))",
+                        icona: cat.icona,
+                        attivo: filtroCategoria.localizedCaseInsensitiveCompare(cat.nome) == .orderedSame
+                    ) {
+                        withAnimation(.snappy) {
+                            if filtroCategoria.localizedCaseInsensitiveCompare(cat.nome) == .orderedSame {
+                                filtroCategoria = "Tutte"
+                            } else {
+                                filtroCategoria = cat.nome
+                            }
+                        }
+                    }
+                }
+                
+                Divider()
+                    .frame(height: 20)
+                
+                ChipFiltroSpot(
+                    titolo: "Con foto",
+                    icona: "photo.fill",
+                    attivo: soloConFoto
+                ) {
+                    withAnimation(.snappy) { soloConFoto.toggle() }
+                }
+                
+                ChipFiltroSpot(
+                    titolo: votoMinimo > 0 ? "\(votoMinimo)+ ★" : "4+ ★",
+                    icona: "star.fill",
+                    attivo: votoMinimo > 0
+                ) {
+                    withAnimation(.snappy) {
+                        votoMinimo = (votoMinimo > 0) ? 0 : 4
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private var menuFiltri: some View {
+        Menu {
+            Section("Ordina per") {
+                Picker("Ordina per", selection: $ordinamento) {
+                    ForEach(OrdineSpot.allCases) { ordine in
+                        Label(ordine.rawValue, systemImage: ordine.icona)
+                            .tag(ordine)
+                    }
+                }
+            }
+            
+            Section("Filtra per Tipologia") {
+                Picker("Tipologia", selection: $filtroCategoria) {
+                    Text("Tutte (\(spots.count))").tag("Tutte")
+                    ForEach(categorieDisponibili, id: \.nome) { cat in
+                        Label("\(cat.nome) (\(cat.count))", systemImage: cat.icona)
+                            .tag(cat.nome)
+                    }
+                }
+            }
+            
+            if nazioniDisponibili.count > 1 {
+                Section("Filtra per Nazione") {
+                    Picker("Nazione", selection: $filtroNazione) {
+                        Text("Tutte le nazioni").tag("Tutte")
+                        ForEach(nazioniDisponibili, id: \.self) { nazione in
+                            Text(nazione).tag(nazione)
+                        }
+                    }
+                }
+            }
+            
+            Section("Altri Filtri") {
+                Picker("Valutazione minima", selection: $votoMinimo) {
+                    Text("Qualsiasi voto").tag(0)
+                    Text("★★★ o superiore").tag(3)
+                    Text("★★★★ o superiore").tag(4)
+                    Text("★★★★★ (Solo 5 stelle)").tag(5)
+                }
+                
+                Toggle(isOn: $soloConFoto) {
+                    Label("Solo spot con foto", systemImage: "photo")
+                }
+            }
+            
+            if haFiltriAttivi || ordinamento != .piuRecenti {
+                Section {
+                    Button(role: .destructive) {
+                        withAnimation {
+                            reimpostaFiltri()
+                        }
+                    } label: {
+                        Label("Reimposta filtri e ordine", systemImage: "arrow.counterclockwise")
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: haFiltriAttivi ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                .font(.title3)
+        }
+    }
+
+    private var vistaVuota: some View {
+        ContentUnavailableView {
+            Label(
+                spots.isEmpty ? "Nessuno spot salvato" : "Nessuno spot trovato",
+                systemImage: "mappin.slash"
+            )
+        } description: {
+            Text(
+                spots.isEmpty
+                ? "Aggiungi il tuo primo posto dalla scheda Creazione Spot."
+                : "Non ci sono spot corrispondenti ai filtri selezionati."
+            )
+        } actions: {
+            if haFiltriAttivi || !testoRicerca.isEmpty {
+                Button("Mostra tutti gli spot") {
+                    withAnimation {
+                        reimpostaFiltri()
+                        testoRicerca = ""
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    private func controllaFiltri() {
+        let categoriaEsiste = categorieDisponibili.contains { $0.nome.localizedCaseInsensitiveCompare(filtroCategoria) == .orderedSame }
+        if filtroCategoria != "Tutte" && !categoriaEsiste {
+            filtroCategoria = "Tutte"
+        }
+        if filtroNazione != "Tutte" && !nazioniDisponibili.contains(filtroNazione) {
+            filtroNazione = "Tutte"
+        }
+    }
+
     private func reimpostaFiltri() {
         filtroCategoria = "Tutte"
         filtroNazione = "Tutte"
