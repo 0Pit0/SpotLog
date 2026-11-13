@@ -45,7 +45,6 @@ struct StarRatingView: View {
     }
 }
 
-/// Dati modificabili di uno spot, condivisi da CreazioneSpot e ModificaSpot
 struct DatiSpot {
     var nome = ""
     var note = ""
@@ -70,7 +69,6 @@ struct DatiSpot {
 
     var mostraCampoNuovaTipologia: Bool { tipologia == .nuovaTipologia && categoriaCustom == nil }
     var valido: Bool { !nome.trimmed.isEmpty && !(mostraCampoNuovaTipologia && nuovaTipologia.trimmed.isEmpty) }
-    /// Cambia quando cambia l'aspetto del Marker, per forzarne il ridisegno
     var firmaMarker: String { "\(tipologia.icona)-\(colore.toHex())-\(nome)" }
 
     func categoria(fallback: String = "Personalizzato") -> String {
@@ -95,7 +93,6 @@ struct DatiSpot {
     }
 }
 
-/// Sezioni del form (stile, dettagli, foto, voto) condivise da CreazioneSpot e ModificaSpot
 struct CampiSpot: View {
     @Binding var dati: DatiSpot
     @Query private var places: [FavoritePlaces]

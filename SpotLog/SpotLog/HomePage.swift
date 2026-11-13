@@ -151,7 +151,6 @@ struct Pagina: View {
                     .tag(place)
             }
         }
-        // Ricrea la mappa quando uno spot cambia, così i Marker si ridisegnano
         .id("\(refreshVersion)-\(filtrati.map(\.markerID).joined(separator: "|"))")
         .mapStyle(stileMappa.mapStyle)
         .mapControls {
@@ -265,7 +264,6 @@ private extension View {
     }
 }
 
-/// Posizione ad alta precisione per la mappa e per CreazioneSpot
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     @Published var lastLocation: CLLocation?

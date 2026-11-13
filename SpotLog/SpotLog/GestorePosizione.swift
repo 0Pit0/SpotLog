@@ -1,10 +1,3 @@
-//
-//  GestorePosizione.swift
-//  SpotLog
-//
-//  Created by s17 on 05/11/26.
-//
-
 import CoreLocation
 
 final class GestorePosizione: NSObject, ObservableObject, CLLocationManagerDelegate {

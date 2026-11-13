@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 import MapKit
 
-// Identificatore per aprire la galleria a tutto schermo sull'immagine toccata
 struct FotoSelezionata: Identifiable {
     let id = UUID()
     let indiceIniziale: Int
@@ -120,7 +119,6 @@ struct Dettaglio: View {
     }
 }
 
-/// Minimappa satellitare centrata sullo spot, con pulsante per ricentrarla (usata da Dettaglio e ModificaSpot)
 struct MiniMappaSpot: View {
     let titolo: String
     let icona: String
@@ -134,7 +132,6 @@ struct MiniMappaSpot: View {
             Marker(titolo, systemImage: icona, coordinate: coordinate).tint(colore)
         }
         .mapStyle(.imagery)
-        // Ricreare la mappa ridisegna il Marker dopo una modifica e la riporta sullo spot quando premo il pulsante
         .id("\(titolo)-\(icona)-\(colore.toHex())-\(coordinate.latitude)-\(coordinate.longitude)-\(contatoreCentra)")
         .overlay(alignment: .topTrailing) {
             Button { contatoreCentra += 1 } label: {
@@ -170,8 +167,6 @@ private struct DistanzaDaTe: View {
         .onDisappear { gestore.ferma() }
     }
 }
-
-// MARK: - Visualizzatore foto a schermo intero (swipe + zoom + chiusura)
 
 struct VisualizzatoreFotoFullScreen: View {
     let immagini: [UIImage]
@@ -213,7 +208,6 @@ struct VisualizzatoreFotoFullScreen: View {
     }
 }
 
-/// Singola immagine con pinch-to-zoom (1x–4x) e doppio tap
 private struct ImmagineZoomabile: View {
     let image: UIImage
     @State private var scala: CGFloat = 1

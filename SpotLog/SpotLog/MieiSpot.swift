@@ -56,7 +56,6 @@ struct MieiSpot: View {
                 && spot.valutazione >= votoMinimo
                 && (!soloConFoto || !spot.fotoData.isEmpty)
         }
-        // `spots` è già ordinato per data decrescente dalla @Query
         switch (ordinamento, gestorePosizione.posizione) {
         case (.piuVicini, let pos?):
             return filtrati
@@ -97,17 +96,13 @@ struct MieiSpot: View {
         }
     }
 
-    // MARK: - Pezzi della vista (separati per aiutare il compilatore)
-
     private var listaSpot: some View {
         List {
-            // I chip stanno dentro la List: così il titolo grande non sparisce su iOS 26
             if !spots.isEmpty {
                 barraFiltri
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
             }
-            // L'ordine scelto si mantiene dentro ogni sezione (Dictionary(grouping:) conserva l'ordine)
             ForEach(Dictionary(grouping: spotsFiltrati, by: \.nazione).sorted { $0.key < $1.key }, id: \.key) { nazione, lista in
                 Section {
                     ForEach(lista) { spot in
@@ -212,8 +207,6 @@ struct MieiSpot: View {
             }
         }
     }
-
-    // MARK: - Azioni
 
     private func controllaFiltri() {
         if !categorieDisponibili.contains(where: { $0.nome.uguale(filtroCategoria) }) { filtroCategoria = "Tutte" }
