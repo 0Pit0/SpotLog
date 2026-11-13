@@ -100,7 +100,7 @@ struct CampiSpot: View {
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var fotoSelezionata: FotoSelezionata?
 
-    private var categoriePersonalizzate: [(nome: String, count: Int)] {
+    private var categoriePersonalizzate: [String] {
         let standard = Set(TipologiaSpot.predefinite.map { $0.titolo.lowercased() })
         let nomi = places.compactMap { spot -> String? in
             let cat = spot.categoria.trimmed
@@ -108,8 +108,8 @@ struct CampiSpot: View {
             return !cat.isEmpty && isCustom ? cat : nil
         }
         return Dictionary(grouping: nomi) { $0.lowercased() }.values
-            .map { (nome: $0[0], count: $0.count) }
-            .sorted { $0.count != $1.count ? $0.count > $1.count : $0.nome.localizedCaseInsensitiveCompare($1.nome) == .orderedAscending }
+            .map { $0[0] }
+            .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     var body: some View {
@@ -150,8 +150,7 @@ struct CampiSpot: View {
         Menu {
             Section("Predefinite") {
                 ForEach(TipologiaSpot.predefinite) { tipo in
-                    let count = places.count(where: { $0.categoria.uguale(tipo.titolo) })
-                    voce(count > 0 ? "\(tipo.titolo) (\(count))" : tipo.titolo, icona: tipo.icona, selezionata: dati.tipologia == tipo) {
+                    voce(tipo.titolo, icona: tipo.icona, selezionata: dati.tipologia == tipo) {
                         dati.seleziona(tipo)
                     }
                 }
@@ -159,9 +158,9 @@ struct CampiSpot: View {
             let personalizzate = categoriePersonalizzate
             if !personalizzate.isEmpty {
                 Section("Le tue categorie") {
-                    ForEach(personalizzate, id: \.nome) { custom in
-                        voce("\(custom.nome) (\(custom.count))", icona: "star.fill", selezionata: dati.tipologia == .nuovaTipologia && dati.categoriaCustom == custom.nome) {
-                            dati.seleziona(.nuovaTipologia, custom: custom.nome)
+                    ForEach(personalizzate, id: \.self) { nome in
+                        voce(nome, icona: "star.fill", selezionata: dati.tipologia == .nuovaTipologia && dati.categoriaCustom == nome) {
+                            dati.seleziona(.nuovaTipologia, custom: nome)
                         }
                     }
                 }
