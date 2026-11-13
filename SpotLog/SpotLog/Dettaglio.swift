@@ -29,11 +29,17 @@ struct Dettaglio: View {
                             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                         )
                     )) {
+                        UserAnnotation()
+
                         Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
                             .tint(place.swiftUIColor)
                     }
                     // Forza il ridisegno del Marker anche nella mappa di Dettaglio dopo la modifica
                     .id(place.markerID)
+                    // Pulsante di centramento in alto a destra, come nella HomePage
+                    .mapControls {
+                        MapUserLocationButton()
+                    }
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(

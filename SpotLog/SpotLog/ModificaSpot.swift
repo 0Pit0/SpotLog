@@ -86,6 +86,8 @@ struct ModificaSpot: View {
                             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
                         )
                     )) {
+                        UserAnnotation()
+
                         Marker(
                             nomeSpot.isEmpty ? place.name : nomeSpot,
                             systemImage: tipologia.icona,
@@ -94,6 +96,10 @@ struct ModificaSpot: View {
                         .tint(iconColor)
                     }
                     .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)")
+                    // Pulsante di centramento in alto a destra, come nella HomePage
+                    .mapControls {
+                        MapUserLocationButton()
+                    }
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
