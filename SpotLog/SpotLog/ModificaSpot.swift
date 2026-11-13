@@ -24,6 +24,9 @@ struct ModificaSpot: View {
     @State private var valutazione: Int = 0
     @State private var fotoSelezionata: FotoSelezionata? = nil
 
+    // Ogni volta che aumenta, la mappa viene ricreata e torna alla initialPosition (lo spot)
+    @State private var contatoreCentra = 0
+
     private var tipologiePredefinite: [TipologiaSpot] {
         TipologiaSpot.allCases.filter { $0 != .nuovaTipologia }
     }
@@ -95,10 +98,22 @@ struct ModificaSpot: View {
                         )
                         .tint(iconColor)
                     }
-                    .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)")
-                    // Pulsante di centramento in alto a destra, come nella HomePage
-                    .mapControls {
-                        MapUserLocationButton()
+                    // Forza il ridisegno del Marker dopo la modifica
+                    // e ricentra sullo spot quando premo il pulsante
+                    .id("\(tipologia.icona)-\(iconColor.toHex())-\(nomeSpot)-\(contatoreCentra)")
+                    // Pulsante in alto a destra che riporta la mappa sullo spot
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            contatoreCentra += 1
+                        } label: {
+                            Image(systemName: "mappin")
+                                .font(.title2)
+                                .foregroundStyle(Color.primary)
+                                .padding(8)
+                                .background(.regularMaterial, in: Circle())
+                        }
+                        .buttonStyle(.borderless)
+                        .padding(8)
                     }
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
