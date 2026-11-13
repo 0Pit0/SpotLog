@@ -159,7 +159,7 @@ struct Pagina: View {
                     .tag(place)
             }
         }
-        .id("\(refreshVersion)-\(filtrati.map(\.markerID).joined(separator: "|"))")
+        .id(refreshVersion)
         .mapStyle(stileMappa.mapStyle)
         .mapControls {
             MapUserLocationButton()
