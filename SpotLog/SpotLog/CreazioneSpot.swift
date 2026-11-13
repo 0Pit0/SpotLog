@@ -244,6 +244,51 @@ struct CampiSpot: View {
     }
 }
 
+extension CLLocationCoordinate2D {
+    func nazione() async -> String? {
+        let placemarks = try? await CLGeocoder().reverseGeocodeLocation(CLLocation(latitude: latitude, longitude: longitude))
+        guard let paese = placemarks?.first?.country, !paese.isEmpty else { return nil }
+        return paese
+    }
+}
+
+/// Mappa usata in Creazione e Modifica Spot: il segnalino si sposta solo toccando la mappa.
+struct SelettorePosizioneSpot: View {
+    @Binding var cameraPosition: MapCameraPosition
+    let coordinata: CLLocationCoordinate2D
+    let dati: DatiSpot
+    var titoloPredefinito = "Spot"
+    let onTocco: (CLLocationCoordinate2D) -> Void
+
+    var body: some View {
+        Section {
+            MapReader { proxy in
+                Map(position: $cameraPosition) {
+                    UserAnnotation()
+                    Marker(dati.nome.isEmpty ? titoloPredefinito : dati.nome, systemImage: dati.tipologia.icona, coordinate: coordinata)
+                        .tint(dati.colore)
+                }
+                .id(dati.firmaMarker)
+                .onMapCameraChange(frequency: .onEnd) { cameraPosition = .camera($0.camera) }
+                .mapControls { MapUserLocationButton() }
+                .simultaneousGesture(
+                    SpatialTapGesture(coordinateSpace: .local).onEnded { tocco in
+                        guard let coord = proxy.convert(tocco.location, from: .local) else { return }
+                        onTocco(coord)
+                    }
+                )
+            }
+            .frame(height: 200)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.3)))
+        } footer: {
+            Text("Tocca un punto sulla mappa per spostare il segnalino dello spot.").font(.caption2)
+        }
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear).mapStyle(.imagery)
+    }
+}
+
 struct CreazioneSpot: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var locationManager = LocationManager()
@@ -257,32 +302,10 @@ struct CreazioneSpot: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    MapReader { proxy in
-                        Map(position: $cameraPosition) {
-                            UserAnnotation()
-                            Marker(dati.nome.isEmpty ? "Nuovo Spot" : dati.nome, systemImage: dati.tipologia.icona, coordinate: coordinata)
-                                .tint(dati.colore)
-                        }
-                        .id(dati.firmaMarker)
-                        .onMapCameraChange(frequency: .onEnd) { cameraPosition = .camera($0.camera) }
-                        .mapControls { MapUserLocationButton() }
-                        .simultaneousGesture(
-                            SpatialTapGesture(coordinateSpace: .local).onEnded { tocco in
-                                guard let coord = proxy.convert(tocco.location, from: .local) else { return }
-                                haImpostatoPosizioneIniziale = true
-                                sposta(su: coord)
-                            }
-                        )
-                    }
-                    .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.3)))
-                } footer: {
-                    Text("Tocca un punto sulla mappa per spostare il segnalino dello spot.").font(.caption2)
+                SelettorePosizioneSpot(cameraPosition: $cameraPosition, coordinata: coordinata, dati: dati, titoloPredefinito: "Nuovo Spot") { coord in
+                    haImpostatoPosizioneIniziale = true
+                    sposta(su: coord)
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear).mapStyle(.imagery)
 
                 CampiSpot(dati: $dati)
 
@@ -313,8 +336,7 @@ struct CreazioneSpot: View {
     private func sposta(su coord: CLLocationCoordinate2D) {
         coordinata = coord
         Task {
-            let placemarks = try? await CLGeocoder().reverseGeocodeLocation(CLLocation(latitude: coord.latitude, longitude: coord.longitude))
-            if let paese = placemarks?.first?.country, !paese.isEmpty { nazioneRilevata = paese }
+            if let paese = await coord.nazione() { nazioneRilevata = paese }
         }
     }
 

@@ -1,20 +1,29 @@
 import SwiftUI
 import SwiftData
+import MapKit
 
 struct ModificaSpot: View {
     let place: FavoritePlaces
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var dati = DatiSpot()
+    @State private var coordinata: CLLocationCoordinate2D
+    @State private var cameraPosition: MapCameraPosition
+    @State private var nazione: String
+
+    init(place: FavoritePlaces) {
+        self.place = place
+        _coordinata = State(initialValue: place.coordinate)
+        _cameraPosition = State(initialValue: .region(MKCoordinateRegion(center: place.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))))
+        _nazione = State(initialValue: place.nazione)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    MiniMappaSpot(titolo: dati.nome.isEmpty ? place.name : dati.nome, icona: dati.tipologia.icona, colore: dati.colore, coordinate: place.coordinate)
+                SelettorePosizioneSpot(cameraPosition: $cameraPosition, coordinata: coordinata, dati: dati, titoloPredefinito: place.name) { coord in
+                    sposta(su: coord)
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
 
                 CampiSpot(dati: $dati)
             }
@@ -27,6 +36,9 @@ struct ModificaSpot: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Salva") {
                         dati.applica(a: place)
+                        place.latitude = coordinata.latitude
+                        place.longitude = coordinata.longitude
+                        place.nazione = nazione
                         try? modelContext.save()
                         NotificationCenter.default.post(name: .spotDidUpdate, object: nil)
                         dismiss()
@@ -35,6 +47,13 @@ struct ModificaSpot: View {
                 }
             }
             .onAppear { dati = DatiSpot(place) }
+        }
+    }
+
+    private func sposta(su coord: CLLocationCoordinate2D) {
+        coordinata = coord
+        Task {
+            if let paese = await coord.nazione() { nazione = paese }
         }
     }
 }
