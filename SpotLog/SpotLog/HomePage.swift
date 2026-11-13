@@ -125,7 +125,7 @@ struct Pagina: View {
 
     private var tags: [(nome: String, icona: String)] {
         var tags = [(nome: "Tutti", icona: "map.fill")]
-            + TipologiaSpot.allCases.filter { $0 != .nuovaTipologia }.map { (nome: $0.titolo, icona: $0.icona) }
+            + TipologiaSpot.predefinite.map { (nome: $0.titolo, icona: $0.icona) }
         for place in places {
             let cat = place.categoria.trimmed
             if !cat.isEmpty && !tags.contains(where: { $0.nome.uguale(cat) }) { tags.append((cat, place.icon)) }

@@ -1,8 +1,6 @@
 import SwiftUI
 import SwiftData
 import MapKit
-import CoreLocation
-import UIKit
 
 // Identificatore per aprire la galleria a tutto schermo sull'immagine toccata
 struct FotoSelezionata: Identifiable {
@@ -11,117 +9,70 @@ struct FotoSelezionata: Identifiable {
 }
 
 struct Dettaglio: View {
-    @Bindable var place: FavoritePlaces
+    let place: FavoritePlaces
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-
     @State private var mostraModifica = false
     @State private var mostraConfermaEliminazione = false
-    @State private var fotoSelezionata: FotoSelezionata? = nil
-    
-    // Ogni volta che aumenta, la mappa viene ricreata e torna alla initialPosition (lo spot)
-    @State private var contatoreCentra = 0
+    @State private var fotoSelezionata: FotoSelezionata?
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Map(initialPosition: .region(
-                        MKCoordinateRegion(
-                            center: place.coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-                        )
-                    )) {
-                        UserAnnotation()
+                    MiniMappaSpot(titolo: place.name, icona: place.icon, colore: place.swiftUIColor, coordinate: place.coordinate)
 
-                        Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
-                            .tint(place.swiftUIColor)
-                    }
-                    // Forza il ridisegno del Marker dopo la modifica
-                    // e ricentra sullo spot quando premo il pulsante
-                    .id("\(place.markerID)-\(contatoreCentra)")
-                    // Pulsante in alto a destra che riporta la mappa sullo spot
-                    .overlay(alignment: .topTrailing) {
-                        Button {
-                            contatoreCentra += 1
-                        } label: {
-                            Image(systemName: "mappin")
-                                .font(.title2)
-                                .foregroundStyle(Color.primary)
-                                .padding(8)
-                                .background(.regularMaterial, in: Circle())
-                        }
-                        .buttonStyle(.borderless)
-                        .padding(8)
-                    }
-                    .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    ).mapStyle(.imagery)
-                    
-                    Text(place.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                    
+                    Text(place.name).font(.title.bold())
+
                     Text("\(place.nazione) · \(place.dataCreazione.formatted(date: .abbreviated, time: .omitted)) · \(place.categoria)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    
+
                     HStack {
-                        kmDaTe(place: place)
-                        
+                        DistanzaDaTe(place: place)
+                        Spacer()
                         if place.valutazione > 0 {
                             HStack(spacing: 2) {
-                                ForEach(1...5, id: \.self) { star in
-                                    Image(systemName: star <= place.valutazione ? "star.fill" : "star")
-                                        .font(.caption)
-                                        .foregroundStyle(star <= place.valutazione ? .yellow : .secondary.opacity(0.4))
+                                ForEach(1...5, id: \.self) { n in
+                                    Image(systemName: n <= place.valutazione ? "star.fill" : "star")
+                                        .foregroundStyle(n <= place.valutazione ? .yellow : .secondary.opacity(0.4))
                                 }
                             }
+                            .font(.caption)
                         }
                     }
-                    
+
                     HStack {
                         Button {
-                            apriIndicazioni(lat: place.latitude, lon: place.longitude, nome: place.name)
+                            let item = MKMapItem(placemark: MKPlacemark(coordinate: place.coordinate))
+                            item.name = place.name
+                            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
                         } label: {
                             HStack {
-                                Text("Indicazioni").bold().foregroundStyle(.white)
-                                Image(systemName: "location.fill").foregroundStyle(.white)
+                                Text("Indicazioni").bold()
+                                Image(systemName: "location.fill")
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.blue, in: Capsule())
+                            .foregroundStyle(.white)
+                            .capsula(Color.blue)
                         }
-                        .buttonStyle(.borderless)
-                        
                         Spacer()
-                
-                        ShareLink(
-                            item: "\(place.name) (\(place.categoria)) - https://maps.apple.com/?ll=\(place.latitude),\(place.longitude)"
-                        ) {
+                        ShareLink(item: "\(place.name) (\(place.categoria)) - https://maps.apple.com/?ll=\(place.latitude),\(place.longitude)") {
                             HStack {
                                 Text("Condividi").bold()
                                 Image(systemName: "square.and.arrow.up")
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.secondary.opacity(0.2), in: Capsule())
+                            .capsula(Color.secondary.opacity(0.2))
                         }
-                        .buttonStyle(.borderless)
                     }
-                    
+                    .buttonStyle(.borderless)
+
                     if !place.fotoData.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 ForEach(place.fotoData.indices, id: \.self) { idx in
-                                    if let uiImage = UIImage(data: place.fotoData[idx]) {
-                                        Button {
-                                            fotoSelezionata = FotoSelezionata(indiceIniziale: idx)
-                                        } label: {
-                                            Image(uiImage: uiImage)
+                                    if let foto = UIImage(data: place.fotoData[idx]) {
+                                        Button { fotoSelezionata = FotoSelezionata(indiceIniziale: idx) } label: {
+                                            Image(uiImage: foto)
                                                 .resizable()
                                                 .scaledToFill()
                                                 .frame(width: 120, height: 95)
@@ -134,41 +85,29 @@ struct Dettaglio: View {
                             .padding(.vertical, 4)
                         }
                     }
-                    
+
                     if !place.descrizione.isEmpty {
                         Text(place.descrizione)
-                            .font(.body)
                     }
                 }
 
                 Section("Opzioni") {
-                    Button(role: .destructive) {
-                        mostraConfermaEliminazione = true
-                    } label: {
-                        Label("Elimina spot", systemImage: "trash")
-                    }
+                    Button("Elimina spot", systemImage: "trash", role: .destructive) { mostraConfermaEliminazione = true }
                 }
             }
             .navigationTitle(place.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Modifica") {
-                        mostraModifica = true
-                    }
+                    Button("Modifica") { mostraModifica = true }
                 }
             }
-            .sheet(isPresented: $mostraModifica) {
-                ModificaSpot(place: place)
-            }
-            .fullScreenCover(item: $fotoSelezionata) { selezione in
-                VisualizzatoreFotoFullScreen(
-                    immagini: place.fotoData.compactMap { UIImage(data: $0) },
-                    indiceIniziale: selezione.indiceIniziale
-                )
+            .sheet(isPresented: $mostraModifica) { ModificaSpot(place: place) }
+            .fullScreenCover(item: $fotoSelezionata) {
+                VisualizzatoreFotoFullScreen(immagini: place.fotoData.compactMap(UIImage.init(data:)), indiceIniziale: $0.indiceIniziale)
             }
             .alert("Eliminare \"\(place.name)\"?", isPresented: $mostraConfermaEliminazione) {
-                Button("Annulla", role: .cancel) { }
+                Button("Annulla", role: .cancel) {}
                 Button("Elimina", role: .destructive) {
                     modelContext.delete(place)
                     try? modelContext.save()
@@ -181,7 +120,59 @@ struct Dettaglio: View {
     }
 }
 
-// MARK: - Visualizzatore Foto a Schermo Intero (Swipe + Zoom + Chiusura)
+/// Minimappa satellitare centrata sullo spot, con pulsante per ricentrarla (usata da Dettaglio e ModificaSpot)
+struct MiniMappaSpot: View {
+    let titolo: String
+    let icona: String
+    let colore: Color
+    let coordinate: CLLocationCoordinate2D
+    @State private var contatoreCentra = 0
+
+    var body: some View {
+        Map(initialPosition: .region(.init(center: coordinate, span: .init(latitudeDelta: 0.01, longitudeDelta: 0.01)))) {
+            UserAnnotation()
+            Marker(titolo, systemImage: icona, coordinate: coordinate).tint(colore)
+        }
+        .mapStyle(.imagery)
+        // Ricreare la mappa ridisegna il Marker dopo una modifica e la riporta sullo spot quando premo il pulsante
+        .id("\(titolo)-\(icona)-\(colore.toHex())-\(coordinate.latitude)-\(coordinate.longitude)-\(contatoreCentra)")
+        .overlay(alignment: .topTrailing) {
+            Button { contatoreCentra += 1 } label: {
+                Image(systemName: "mappin")
+                    .font(.title2)
+                    .foregroundStyle(Color.primary)
+                    .padding(8)
+                    .background(.regularMaterial, in: Circle())
+            }
+            .buttonStyle(.borderless)
+            .padding(8)
+        }
+        .frame(height: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.3)))
+    }
+}
+
+private struct DistanzaDaTe: View {
+    let place: FavoritePlaces
+    @StateObject private var gestore = GestorePosizione()
+
+    var body: some View {
+        let negata = [CLAuthorizationStatus.denied, .restricted].contains(gestore.autorizzazione)
+        let distanza = negata ? nil : gestore.posizione.map { "\(place.distanzaFormattata(da: $0)) da te" }
+        HStack {
+            Image(systemName: "location.circle.fill").foregroundStyle(.blue)
+            Text(distanza ?? (negata ? "Posizione non disponibile" : "Calcolo distanza…"))
+                .font(.caption)
+                .foregroundStyle(distanza == nil ? .secondary : .primary)
+        }
+        .onAppear { gestore.avvia() }
+        .onDisappear { gestore.ferma() }
+    }
+}
+
+// MARK: - Visualizzatore foto a schermo intero (swipe + zoom + chiusura)
+
 struct VisualizzatoreFotoFullScreen: View {
     let immagini: [UIImage]
     @State private var indiceCorrente: Int
@@ -193,38 +184,26 @@ struct VisualizzatoreFotoFullScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.black.ignoresSafeArea()
-
-            TabView(selection: $indiceCorrente) {
-                ForEach(immagini.indices, id: \.self) { index in
-                    ImmagineZoomabile(image: immagini[index])
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: immagini.count > 1 ? .always : .never))
-            .ignoresSafeArea()
-
-            // Barra superiore con contatore e pulsante di chiusura
+        TabView(selection: $indiceCorrente) {
+            ForEach(immagini.indices, id: \.self) { ImmagineZoomabile(image: immagini[$0]).tag($0) }
+        }
+        .tabViewStyle(.page(indexDisplayMode: immagini.count > 1 ? .always : .never))
+        .background(.black)
+        .ignoresSafeArea()
+        .overlay(alignment: .top) {
             HStack {
                 if immagini.count > 1 {
                     Text("\(indiceCorrente + 1) / \(immagini.count)")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(.ultraThinMaterial, in: Capsule())
                 }
-
                 Spacer()
-
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 30))
-                        .symbolRenderingMode(.palette)
                         .foregroundStyle(.white, .white.opacity(0.25))
                 }
             }
@@ -234,80 +213,38 @@ struct VisualizzatoreFotoFullScreen: View {
     }
 }
 
-// MARK: - Singola Immagine con supporto Pinch-to-Zoom e Doppio Tap
-struct ImmagineZoomabile: View {
+/// Singola immagine con pinch-to-zoom (1x–4x) e doppio tap
+private struct ImmagineZoomabile: View {
     let image: UIImage
-    @State private var scala: CGFloat = 1.0
-    @State private var ultimaScala: CGFloat = 1.0
+    @State private var scala: CGFloat = 1
+    @GestureState private var pinch: CGFloat = 1
+
+    private func limita(_ s: CGFloat) -> CGFloat { min(max(s, 1), 4) }
 
     var body: some View {
         Image(uiImage: image)
             .resizable()
             .scaledToFit()
-            .scaleEffect(scala)
+            .scaleEffect(limita(scala * pinch))
             .gesture(
-                MagnificationGesture()
-                    .onChanged { valore in
-                        let delta = valore / ultimaScala
-                        ultimaScala = valore
-                        scala = min(max(scala * delta, 1.0), 4.0)
-                    }
-                    .onEnded { _ in
-                        ultimaScala = 1.0
-                        if scala < 1.05 {
-                            withAnimation(.spring()) {
-                                scala = 1.0
-                            }
-                        }
+                MagnifyGesture()
+                    .updating($pinch) { valore, stato, _ in stato = valore.magnification }
+                    .onEnded { valore in
+                        let nuova = limita(scala * valore.magnification)
+                        withAnimation(.spring) { scala = nuova < 1.05 ? 1 : nuova }
                     }
             )
             .onTapGesture(count: 2) {
-                withAnimation(.spring()) {
-                    scala = (scala > 1.0) ? 1.0 : 2.5
-                }
+                withAnimation(.spring) { scala = scala > 1 ? 1 : 2.5 }
             }
     }
 }
 
-func apriIndicazioni(lat: Double, lon: Double, nome: String) {
-    let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
-    mapItem.name = nome
-    mapItem.openInMaps(launchOptions: [
-        MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
-    ])
-}
-
-struct kmDaTe: View {
-    var place: FavoritePlaces
-    @StateObject private var gestore = GestorePosizione()
-
-    var body: some View {
-        HStack {
-            Image(systemName: "location.circle.fill")
-                .foregroundStyle(.blue)
-            testoDistanza
-                .font(.caption)
-            Spacer()
-        }
-        .onAppear { gestore.avvia() }
-        .onDisappear { gestore.ferma() }
-    }
-
-    @ViewBuilder
-    private var testoDistanza: some View {
-        switch gestore.autorizzazione {
-        case .denied, .restricted:
-            Text("Posizione non disponibile")
-                .foregroundStyle(.secondary)
-        default:
-            if let posizione = gestore.posizione {
-                Text("\(place.distanzaFormattata(da: posizione)) da te")
-            } else {
-                Text("Calcolo distanza…")
-                    .foregroundStyle(.secondary)
-            }
-        }
+private extension View {
+    func capsula(_ sfondo: some ShapeStyle) -> some View {
+        padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(sfondo, in: Capsule())
     }
 }
 
