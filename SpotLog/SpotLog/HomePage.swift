@@ -1,9 +1,7 @@
 import SwiftUI
 import SwiftData
 import MapKit
-import CoreLocation
 import Combine
-import UIKit
 
 extension Notification.Name {
     static let spotDidUpdate = Notification.Name("spotDidUpdate")
@@ -13,14 +11,14 @@ enum StileMappa: String, CaseIterable, Identifiable {
     case standard = "Standard"
     case ibrida = "Ibrida"
     case satellite = "Satellite"
-    
+
     var id: String { rawValue }
-    
+
     var mapStyle: MapStyle {
         switch self {
-        case .standard: return .standard
-        case .ibrida: return .hybrid
-        case .satellite: return .imagery
+        case .standard: .standard
+        case .ibrida: .hybrid
+        case .satellite: .imagery
         }
     }
 }
@@ -40,7 +38,7 @@ final class FavoritePlaces {
     var latitude: Double
     var longitude: Double
     @Attribute(.externalStorage) var fotoData: [Data]
-    
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -70,372 +68,230 @@ final class FavoritePlaces {
         self.longitude = longitude
         self.fotoData = fotoData
     }
-    
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-    }
-    
-    var swiftUIColor: Color {
-        Color(hex: colorHex) ?? .blue
-    }
-    
-    var markerID: String {
-        "\(id.uuidString)-\(colorHex)-\(icon)-\(name)-\(latitude)-\(longitude)"
-    }
-}
 
-extension FavoritePlaces {
+    var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+    var swiftUIColor: Color { Color(hex: colorHex) ?? .blue }
+    var markerID: String { "\(id.uuidString)-\(colorHex)-\(icon)-\(name)-\(latitude)-\(longitude)" }
+
     func distanzaFormattata(da posizione: CLLocation) -> String {
-        let destinazione = CLLocation(latitude: latitude, longitude: longitude)
-        let metri = posizione.distance(from: destinazione)
-
-        if metri < 1000 {
-            return "\(Int(metri)) m"
-        }
-        let km = Measurement(value: metri / 1000, unit: UnitLength.kilometers)
-        return km.formatted(
-            .measurement(
-                width: .abbreviated,
-                usage: .asProvided,
-                numberFormatStyle: .number.precision(.fractionLength(1))
-            )
-        )
+        let metri = posizione.distance(from: CLLocation(latitude: latitude, longitude: longitude))
+        if metri < 1000 { return "\(Int(metri)) m" }
+        return Measurement(value: metri / 1000, unit: UnitLength.kilometers)
+            .formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(1))))
     }
 }
 
 extension Color {
     init?(hex: String) {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
-        var rgb: UInt64 = 0
-        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
-        
-        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
-        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
-        let b = Double(rgb & 0x0000FF) / 255.0
-        
-        self.init(red: r, green: g, blue: b)
+        guard let rgb = UInt64(hex.trimmed.replacingOccurrences(of: "#", with: ""), radix: 16) else { return nil }
+        self.init(red: Double(rgb >> 16 & 0xFF) / 255, green: Double(rgb >> 8 & 0xFF) / 255, blue: Double(rgb & 0xFF) / 255)
     }
-    
+
     func toHex() -> String {
-        let uiColor = UIColor(self)
-        var r: CGFloat = 0
-        var g: CGFloat = 0
-        var b: CGFloat = 0
-        var a: CGFloat = 0
-        
-        if uiColor.getRed(&r, green: &g, blue: &b, alpha: &a) {
-            return String(
-                format: "#%02X%02X%02X",
-                Int(round(min(max(r, 0), 1) * 255)),
-                Int(round(min(max(g, 0), 1) * 255)),
-                Int(round(min(max(b, 0), 1) * 255))
-            )
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        guard UIColor(self).getRed(&r, green: &g, blue: &b, alpha: nil) else { return "#007AFF" }
+        let byte = { (c: CGFloat) in Int((min(max(c, 0), 1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", byte(r), byte(g), byte(b))
+    }
+}
+
+extension String {
+    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
+    func uguale(_ altra: String) -> Bool { localizedCaseInsensitiveCompare(altra) == .orderedSame }
+}
+
+struct HomePage: View {
+    var body: some View {
+        TabView {
+            Tab("Mappa", systemImage: "map") { Pagina() }
+            Tab("Creazione Spot", systemImage: "plus") { CreazioneSpot() }
+            Tab("Spots", systemImage: "mappin") { MieiSpot() }
         }
-        
-        if let sRGB = CGColorSpace(name: CGColorSpace.sRGB),
-           let cgColor = uiColor.cgColor.converted(to: sRGB, intent: .defaultIntent, options: nil),
-           let components = cgColor.components, components.count >= 3 {
-            return String(
-                format: "#%02X%02X%02X",
-                Int(round(min(max(components[0], 0), 1) * 255)),
-                Int(round(min(max(components[1], 0), 1) * 255)),
-                Int(round(min(max(components[2], 0), 1) * 255))
-            )
-        }
-        
-        return "#007AFF"
     }
 }
 
 struct Pagina: View {
     @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var places: [FavoritePlaces]
-    
-    @AppStorage("stileMappa") private var stileMappaRaw: String = StileMappa.satellite.rawValue
-    
-    @State private var searchText: String = ""
-    @State private var filtroSelezionato: String = "Tutti"
-    
-    private var stileMappaBinding: Binding<StileMappa> {
-        Binding(
-            get: { StileMappa(rawValue: stileMappaRaw) ?? .standard },
-            set: { stileMappaRaw = $0.rawValue }
-        )
-    }
-    
-    private var tagsDisponibili: [(nome: String, icona: String)] {
-        var base: [(String, String)] = [("Tutti", "map.fill")]
-        for tipo in TipologiaSpot.allCases where tipo != .nuovaTipologia {
-            base.append((tipo.titolo, tipo.icona))
-        }
-        
+    @AppStorage("stileMappa") private var stileMappa: StileMappa = .satellite
+    @StateObject private var locationManager = LocationManager()
+
+    @State private var searchText = ""
+    @State private var filtroSelezionato = "Tutti"
+    @State private var position: MapCameraPosition = .automatic
+    @State private var haCentratoSuUtente = false
+    @State private var mapSelection: FavoritePlaces?
+    @State private var sheetPlace: FavoritePlaces?
+    @State private var refreshVersion = 0
+
+    private var tags: [(nome: String, icona: String)] {
+        var tags = [(nome: "Tutti", icona: "map.fill")]
+            + TipologiaSpot.allCases.filter { $0 != .nuovaTipologia }.map { (nome: $0.titolo, icona: $0.icona) }
         for place in places {
-            let cat = place.categoria.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !cat.isEmpty else { continue }
-            if !base.contains(where: { $0.0.localizedCaseInsensitiveCompare(cat) == .orderedSame }) {
-                base.append((cat, place.icon))
-            }
+            let cat = place.categoria.trimmed
+            if !cat.isEmpty && !tags.contains(where: { $0.nome.uguale(cat) }) { tags.append((cat, place.icon)) }
         }
-        return base
+        return tags
+    }
+
+    private var placesFiltrati: [FavoritePlaces] {
+        let query = searchText.trimmed
+        return places.filter { place in
+            (filtroSelezionato == "Tutti" || place.categoria.uguale(filtroSelezionato))
+                && (query.isEmpty || [place.name, place.descrizione, place.nazione].contains { $0.localizedCaseInsensitiveContains(query) })
+        }
     }
 
     var body: some View {
-        UserLocationMap(
-            searchText: searchText,
-            filtroSelezionato: filtroSelezionato,
-            stileMappa: stileMappaBinding.wrappedValue
-        )
-        .onChange(of: places) { _, _ in
-            if !tagsDisponibili.contains(where: { $0.nome.localizedCaseInsensitiveCompare(filtroSelezionato) == .orderedSame }) {
-                filtroSelezionato = "Tutti"
+        let filtrati = placesFiltrati
+        Map(position: $position, selection: $mapSelection) {
+            UserAnnotation()
+            ForEach(filtrati, id: \.markerID) { place in
+                Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
+                    .tint(place.swiftUIColor)
+                    .tag(place)
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 10) {
-                HStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                        
-                        TextField("Cerca nei tuoi posti", text: $searchText)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        
-                        if !searchText.isEmpty {
-                            Button {
+        // Ricrea la mappa quando uno spot cambia, così i Marker si ridisegnano
+        .id("\(refreshVersion)-\(filtrati.map(\.markerID).joined(separator: "|"))")
+        .mapStyle(stileMappa.mapStyle)
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
+        }
+        .onMapCameraChange(frequency: .onEnd) { position = .region($0.region) }
+        .onChange(of: mapSelection) { _, place in
+            guard let place else { return }
+            sheetPlace = place
+            mapSelection = nil
+        }
+        .sheet(item: $sheetPlace, onDismiss: { refreshVersion += 1 }) { Dettaglio(place: $0) }
+        .onReceive(NotificationCenter.default.publisher(for: .spotDidUpdate)) { _ in refreshVersion += 1 }
+        .onAppear { locationManager.start() }
+        .onChange(of: locationManager.lastLocation) { _, location in
+            guard !haCentratoSuUtente, let center = location?.coordinate else { return }
+            haCentratoSuUtente = true
+            position = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)))
+        }
+        .onChange(of: places) {
+            if !tags.contains(where: { $0.nome.uguale(filtroSelezionato) }) { filtroSelezionato = "Tutti" }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) { barraSuperiore }
+    }
+
+    private var barraSuperiore: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                    TextField("Cerca nei tuoi posti", text: $searchText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    if !searchText.isEmpty {
+                        Button { searchText = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .vetro()
+
+                Menu {
+                    Picker("Stile Mappa", selection: $stileMappa) {
+                        ForEach(StileMappa.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    if filtroSelezionato != "Tutti" || !searchText.isEmpty {
+                        Divider()
+                        Button("Reimposta filtri", systemImage: "arrow.counterclockwise", role: .destructive) {
+                            withAnimation {
+                                filtroSelezionato = "Tutti"
                                 searchText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
-                    
-                    Menu {
-                        Picker("Stile Mappa", selection: stileMappaBinding) {
-                            ForEach(StileMappa.allCases) { stile in
-                                Text(stile.rawValue).tag(stile)
-                            }
+                } label: {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                        .vetro()
+                }
+            }
+            .padding(.horizontal, 16)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(tags, id: \.nome) { tag in
+                        ButtonTipologie(text: tag.nome, icon: tag.icona, isSelected: filtroSelezionato.uguale(tag.nome)) {
+                            filtroSelezionato = tag.nome
                         }
-                        
-                        if filtroSelezionato != "Tutti" || !searchText.isEmpty {
-                            Divider()
-                            Button(role: .destructive) {
-                                withAnimation {
-                                    filtroSelezionato = "Tutti"
-                                    searchText = ""
-                                }
-                            } label: {
-                                Label("Reimposta filtri", systemImage: "arrow.counterclockwise")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .frame(width: 44, height: 44)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
                     }
                 }
                 .padding(.horizontal, 16)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(tagsDisponibili, id: \.nome) { tag in
-                            ButtonTipologie(
-                                text: tag.nome,
-                                icon: tag.icona,
-                                isSelected: filtroSelezionato.localizedCaseInsensitiveCompare(tag.nome) == .orderedSame
-                            ) {
-                                withAnimation(.snappy) {
-                                    filtroSelezionato = tag.nome
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 4)
-                }
+                .padding(.vertical, 4)
             }
-            .padding(.top, 6)
-            .padding(.bottom, 4)
         }
+        .padding(.top, 6)
+        .padding(.bottom, 4)
     }
 }
 
 struct ButtonTipologie: View {
     let text: String
-    var icon: String? = nil
-    var isSelected: Bool = false
-    var action: () -> Void = { }
-    
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
     var body: some View {
-        Button(action: action) {
+        Button { withAnimation(.snappy, action) } label: {
             HStack(spacing: 6) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.caption)
-                }
-                Text(text)
-                    .font(.subheadline)
-                    .fontWeight(isSelected ? .semibold : .medium)
+                Image(systemName: icon).font(.caption)
+                Text(text).font(.subheadline).fontWeight(isSelected ? .semibold : .medium)
             }
             .foregroundStyle(isSelected ? Color(.systemBackground) : .primary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.regularMaterial))
-            )
+            .background(isSelected ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.regularMaterial), in: Capsule())
             .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
         }
         .buttonStyle(.plain)
     }
 }
 
-struct HomePage: View {
-    @State private var tabSelezionata: Int = 0
-
-    var body: some View {
-        TabView(selection: $tabSelezionata) {
-            Pagina()
-                .tabItem { Label("Mappa", systemImage: "map") }
-                .tag(0)
-            
-            CreazioneSpot()
-                .tabItem { Label("Creazione Spot", systemImage: "plus") }
-                .tag(1)
-            
-            MieiSpot()
-                .tabItem { Label("Spots", systemImage: "mappin") }
-                .tag(2)
-        }
+private extension View {
+    func vetro() -> some View {
+        background(.regularMaterial, in: .rect(cornerRadius: 14, style: .continuous))
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
     }
 }
 
+/// Posizione ad alta precisione per la mappa e per CreazioneSpot
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
-
-    @Published var authorization: CLAuthorizationStatus = .notDetermined
     @Published var lastLocation: CLLocation?
 
     override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
-        authorization = manager.authorizationStatus
     }
 
     func start() {
-        switch manager.authorizationStatus {
-        case .notDetermined:
+        if manager.authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
-        case .authorizedWhenInUse, .authorizedAlways:
-            manager.startUpdatingLocation()
-        default:
-            break
+        } else {
+            locationManagerDidChangeAuthorization(manager)
         }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorization = manager.authorizationStatus
-        if authorization == .authorizedWhenInUse || authorization == .authorizedAlways {
+        if [.authorizedWhenInUse, .authorizedAlways].contains(manager.authorizationStatus) {
             manager.startUpdatingLocation()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         lastLocation = locations.last
-    }
-
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location error:", error)
-    }
-}
-
-struct UserLocationMap: View {
-    var searchText: String = ""
-    var filtroSelezionato: String = "Tutti"
-    var stileMappa: StileMappa = .standard
-
-    @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var places: [FavoritePlaces]
-    @StateObject private var locationManager = LocationManager()
-    @State private var position: MapCameraPosition = .automatic
-    @State private var haCentratoSuUtente = false
-    @State private var mapSelection: FavoritePlaces?
-    @State private var sheetPlace: FavoritePlaces?
-    @State private var refreshVersion: Int = 0
-
-    private var placesFiltrati: [FavoritePlaces] {
-        places.filter { place in
-            let matchCategoria = (filtroSelezionato == "Tutti") ||
-                                 (place.categoria.localizedCaseInsensitiveCompare(filtroSelezionato) == .orderedSame)
-            
-            let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            let matchTesto = query.isEmpty ||
-                             place.name.localizedCaseInsensitiveContains(query) ||
-                             place.descrizione.localizedCaseInsensitiveContains(query) ||
-                             place.nazione.localizedCaseInsensitiveContains(query)
-            
-            return matchCategoria && matchTesto
-        }
-    }
-
-    private var mapRenderID: String {
-        let firmaMarkers = placesFiltrati.map(\.markerID).joined(separator: "|")
-        return "\(refreshVersion)-\(firmaMarkers)"
-    }
-
-    var body: some View {
-        Map(position: $position, selection:$mapSelection) {
-            UserAnnotation()
-
-            ForEach(placesFiltrati, id: \.markerID) { place in
-                Marker(place.name, systemImage: place.icon, coordinate: place.coordinate)
-                    .tint(place.swiftUIColor)
-                    .tag(place)
-            }
-        }
-        .id(mapRenderID)
-        .mapStyle(stileMappa.mapStyle)
-        .mapControls {
-            MapUserLocationButton()
-            MapCompass()
-        }
-        .onMapCameraChange(frequency: .onEnd) { context in
-            position = .region(context.region)
-        }
-        .onChange(of: mapSelection) { _, newValue in
-            if let newValue {
-                sheetPlace = newValue
-                mapSelection = nil
-            }
-        }
-        .sheet(item: $sheetPlace, onDismiss: {
-            refreshVersion += 1
-        }) { place in
-            Dettaglio(place: place)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .spotDidUpdate)) { _ in
-            refreshVersion += 1
-        }
-        .onAppear { locationManager.start() }
-        .onChange(of: locationManager.lastLocation) { _, newValue in
-            guard !haCentratoSuUtente, let coordinate = newValue?.coordinate else { return }
-            haCentratoSuUtente = true
-            position = .region(
-                MKCoordinateRegion(
-                    center: coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                )
-            )
-        }
     }
 }
 

@@ -244,7 +244,3 @@ struct ModificaSpot: View {
         NotificationCenter.default.post(name: .spotDidUpdate, object: nil)
     }
 }
-
-private extension String {
-    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
-}
