@@ -267,9 +267,13 @@ struct CreazioneSpot: View {
                         }
                         .id(dati.firmaMarker)
                         .mapControls { MapUserLocationButton() }
-                        .onTapGesture { punto in
-                            if let coord = proxy.convert(punto, from: .local) { sposta(su: coord) }
-                        }
+                        .simultaneousGesture(
+                            SpatialTapGesture(coordinateSpace: .local).onEnded { tocco in
+                                guard let coord = proxy.convert(tocco.location, from: .local) else { return }
+                                haImpostatoPosizioneIniziale = true
+                                sposta(su: coord)
+                            }
+                        )
                     }
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
