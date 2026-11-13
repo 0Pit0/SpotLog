@@ -266,6 +266,7 @@ struct CreazioneSpot: View {
                                 .tint(dati.colore)
                         }
                         .id(dati.firmaMarker)
+                        .onMapCameraChange(frequency: .onEnd) { cameraPosition = .camera($0.camera) }
                         .mapControls { MapUserLocationButton() }
                         .simultaneousGesture(
                             SpatialTapGesture(coordinateSpace: .local).onEnded { tocco in
