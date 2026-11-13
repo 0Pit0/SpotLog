@@ -1,106 +1,419 @@
 {
   "sourceLanguage" : "it",
   "strings" : {
-    "cerca nei tuoi posti" : {
-
-    },
-    "Chiudi" : {
-
-    },
-    "Colore" : {
-
-    },
-    "Creazione Spot" : {
-
-    },
-    "Cultura" : {
-
-    },
-    "Divertimento" : {
-
-    },
-    "Explore" : {
-
-    },
-    "Home" : {
-
-    },
-    "Icona" : {
-
-    },
-    "Italia - 12 Aug 2021 - Monumento" : {
-
-    },
-    "Latitudine: %lf" : {
-
-    },
-    "Longitudine: %lf" : {
-
-    },
-    "Monumento" : {
-
-    },
-    "Natura" : {
-
-    },
-    "Nome" : {
-
-    },
-    "Nome della tipologia" : {
-
-    },
-    "Nome Dello Spot" : {
-
-    },
-    "Note sul viaggio" : {
-
-    },
-    "Nuova Tipologia" : {
-
-    },
-    "Panorama" : {
-
-    },
-    "Posizione" : {
-
-    },
-    "Preferiti" : {
-
-    },
-    "Ristoro" : {
-
-    },
-    "Saluto" : {
-      "extractionState" : "manual",
+    "%@ (%lld)" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Good Morning"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buongiorno"
-          }
-        }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ (%lld)" } }
       }
     },
-    "Segnalino" : {
-
+    "%@ · %@ · %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ · %@ · %@" } }
+      }
+    },
+    "%@ · %lld" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ · %lld" } }
+      }
+    },
+    "%@ da te" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ away" } }
+      }
+    },
+    "%lld / %lld" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld / %lld" } }
+      }
+    },
+    "%lld+ ★" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld+ ★" } }
+      }
+    },
+    "Aggiungi il tuo primo posto dalla scheda Creazione Spot." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add your first place from the Create Spot tab." } }
+      }
+    },
+    "Altri Filtri" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other Filters" } }
+      }
+    },
+    "Annulla" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } }
+      }
+    },
+    "Calcolo distanza…" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Calculating distance…" } }
+      }
+    },
+    "Cerca nei tuoi posti" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search your places" } }
+      }
+    },
+    "Cerca nome, note o nazione" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Search name, notes or country" } }
+      }
+    },
+    "Colore" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Color" } }
+      }
+    },
+    "Con foto" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "With photos" } }
+      }
+    },
+    "Condividi" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Share" } }
+      }
+    },
+    "Creazione Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create Spot" } }
+      }
+    },
+    "Cultura" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Culture" } }
+      }
+    },
+    "Dettagli" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Details" } }
+      }
+    },
+    "Divertimento" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Entertainment" } }
+      }
+    },
+    "Elimina" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } }
+      }
+    },
+    "Elimina spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete spot" } }
+      }
+    },
+    "Eliminare \"%@\"?" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete \"%@\"?" } }
+      }
+    },
+    "Eliminare spot?" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete spot?" } }
+      }
+    },
+    "Filtra per Nazione" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Filter by Country" } }
+      }
+    },
+    "Filtra per Tipologia" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Filter by Type" } }
+      }
+    },
+    "Foto e note verranno rimosse dal dispositivo. L'azione non è reversibile." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photos and notes will be removed from this device. This action cannot be undone." } }
+      }
+    },
+    "Foto Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spot Photos" } }
+      }
+    },
+    "I Miei Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "My Spots" } }
+      }
+    },
+    "Ibrida" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hybrid" } }
+      }
+    },
+    "Indicazioni" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Directions" } }
+      }
+    },
+    "Le tue categorie" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Your categories" } }
+      }
+    },
+    "Mappa" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Map" } }
+      }
+    },
+    "Modifica" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit" } }
+      }
+    },
+    "Modifica Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit Spot" } }
+      }
+    },
+    "Monumento" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Monument" } }
+      }
+    },
+    "Mostra tutti gli spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Show all spots" } }
+      }
+    },
+    "Natura" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nature" } }
+      }
+    },
+    "Nazione" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Country" } }
+      }
+    },
+    "Nessuno spot salvato" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No saved spots" } }
+      }
+    },
+    "Nessuno spot trovato" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No spots found" } }
+      }
+    },
+    "Nome (A-Z)" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name (A-Z)" } }
+      }
+    },
+    "Nome nuova tipologia (es. Escursione)" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New type name (e.g. Hiking)" } }
+      }
+    },
+    "Nome spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spot name" } }
+      }
+    },
+    "Non ci sono spot corrispondenti ai filtri selezionati." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No spots match the selected filters." } }
+      }
+    },
+    "Note viaggio" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Travel notes" } }
+      }
+    },
+    "Nuova Tipologia" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New Type" } }
+      }
+    },
+    "Nuova Tipologia…" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New Type…" } }
+      }
+    },
+    "Nuovo Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New Spot" } }
+      }
+    },
+    "Opzioni" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Options" } }
+      }
+    },
+    "Ordina per" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sort by" } }
+      }
+    },
+    "Panorama" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Viewpoint" } }
+      }
+    },
+    "Più recenti" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Most recent" } }
+      }
+    },
+    "Più vicini a te" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearest to you" } }
+      }
+    },
+    "Posizione non disponibile" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Location unavailable" } }
+      }
+    },
+    "Predefinite" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Default" } }
+      }
+    },
+    "Qualsiasi voto" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Any rating" } }
+      }
+    },
+    "Reimposta filtri" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reset filters" } }
+      }
+    },
+    "Reimposta filtri e ordine" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reset filters and sorting" } }
+      }
+    },
+    "Ristoro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Food & Drink" } }
+      }
+    },
+    "Salva" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save" } }
+      }
+    },
+    "Salva Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save Spot" } }
+      }
+    },
+    "Satellite" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Satellite" } }
+      }
     },
     "Shopping" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Shopping" } }
+      }
+    },
+    "Solo spot con foto" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Only spots with photos" } }
+      }
     },
     "Spiaggia" : {
-
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Beach" } }
+      }
+    },
+    "Spots" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spots" } }
+      }
+    },
+    "Standard" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Standard" } }
+      }
+    },
+    "Stile Mappa" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Map Style" } }
+      }
+    },
+    "Stile Spot" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spot Style" } }
+      }
     },
     "Tipologia" : {
-
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Type" } }
+      }
     },
-    "Tipologia:" : {
-
+    "Tocca un punto sulla mappa per spostare il segnalino dello spot." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tap a point on the map to move the spot's pin." } }
+      }
+    },
+    "Tutte (%lld)" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All (%lld)" } }
+      }
+    },
+    "Tutte le nazioni" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All countries" } }
+      }
+    },
+    "Tutti" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All" } }
+      }
+    },
+    "Valutazione" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rating" } }
+      }
+    },
+    "Valutazione minima" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Minimum rating" } }
+      }
+    },
+    "Voto" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Stars" } }
+      }
+    },
+    "Voto più alto" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Highest rated" } }
+      }
+    },
+    "★★★ o superiore" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "★★★ or higher" } }
+      }
+    },
+    "★★★★ o superiore" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "★★★★ or higher" } }
+      }
+    },
+    "★★★★★ (Solo 5 stelle)" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "★★★★★ (5 stars only)" } }
+      }
     }
   },
   "version" : "1.0"

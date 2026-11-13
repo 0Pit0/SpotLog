@@ -10,6 +10,15 @@ enum OrdineSpot: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var titolo: LocalizedStringResource {
+        switch self {
+        case .piuRecenti: "Più recenti"
+        case .piuVicini: "Più vicini a te"
+        case .votoMigliore: "Voto più alto"
+        case .alfabetico: "Nome (A-Z)"
+        }
+    }
+
     var icona: String {
         switch self {
         case .piuRecenti: "calendar"
@@ -50,7 +59,7 @@ struct MieiSpot: View {
     private var spotsFiltrati: [FavoritePlaces] {
         let query = testoRicerca.trimmed
         let filtrati = spots.filter { spot in
-            (query.isEmpty || [spot.name, spot.descrizione, spot.nazione, spot.categoria].contains { $0.localizedCaseInsensitiveContains(query) })
+            (query.isEmpty || [spot.name, spot.descrizione, spot.nazione, spot.categoria, TipologiaSpot.nomeVisualizzato(categoria: spot.categoria)].contains { $0.localizedCaseInsensitiveContains(query) })
                 && (filtroCategoria == "Tutte" || spot.categoria.uguale(filtroCategoria))
                 && (filtroNazione == "Tutte" || spot.nazione.uguale(filtroNazione))
                 && spot.valutazione >= votoMinimo
@@ -83,7 +92,7 @@ struct MieiSpot: View {
                 .onAppear { gestorePosizione.avvia() }
                 .onDisappear { gestorePosizione.ferma() }
                 .alert(
-                    spotDaEliminare.map { "Eliminare \"\($0.name)\"?" } ?? "Eliminare spot?",
+                    spotDaEliminare.map { Text("Eliminare \"\($0.name)\"?") } ?? Text("Eliminare spot?"),
                     isPresented: Binding(get: { spotDaEliminare != nil }, set: { if !$0 { spotDaEliminare = nil } }),
                     presenting: spotDaEliminare
                 ) { spot in
@@ -130,7 +139,7 @@ struct MieiSpot: View {
                 }
                 ForEach(categorieDisponibili, id: \.nome) { cat in
                     let attivo = filtroCategoria.uguale(cat.nome)
-                    ChipFiltroSpot(titolo: "\(cat.nome) (\(cat.count))", icona: cat.icona, attivo: attivo) {
+                    ChipFiltroSpot(titolo: "\(TipologiaSpot.nomeVisualizzato(categoria: cat.nome)) (\(cat.count))", icona: cat.icona, attivo: attivo) {
                         filtroCategoria = attivo ? "Tutte" : cat.nome
                     }
                 }
@@ -151,13 +160,17 @@ struct MieiSpot: View {
         Menu {
             Section("Ordina per") {
                 Picker("Ordina per", selection: $ordinamento) {
-                    ForEach(OrdineSpot.allCases) { Label($0.rawValue, systemImage: $0.icona).tag($0) }
+                    ForEach(OrdineSpot.allCases) { ordine in
+                        Label { Text(ordine.titolo) } icon: { Image(systemName: ordine.icona) }.tag(ordine)
+                    }
                 }
             }
             Section("Filtra per Tipologia") {
                 Picker("Tipologia", selection: $filtroCategoria) {
                     Text("Tutte (\(spots.count))").tag("Tutte")
-                    ForEach(categorieDisponibili, id: \.nome) { Label("\($0.nome) (\($0.count))", systemImage: $0.icona).tag($0.nome) }
+                    ForEach(categorieDisponibili, id: \.nome) {
+                        Label("\(TipologiaSpot.nomeVisualizzato(categoria: $0.nome)) (\($0.count))", systemImage: $0.icona).tag($0.nome)
+                    }
                 }
             }
             if nazioniDisponibili.count > 1 {
@@ -192,9 +205,9 @@ struct MieiSpot: View {
 
     private var vistaVuota: some View {
         ContentUnavailableView {
-            Label(spots.isEmpty ? "Nessuno spot salvato" : "Nessuno spot trovato", systemImage: "mappin.slash")
+            Label(spots.isEmpty ? LocalizedStringKey("Nessuno spot salvato") : LocalizedStringKey("Nessuno spot trovato"), systemImage: "mappin.slash")
         } description: {
-            Text(spots.isEmpty ? "Aggiungi il tuo primo posto dalla scheda Creazione Spot." : "Non ci sono spot corrispondenti ai filtri selezionati.")
+            Text(spots.isEmpty ? LocalizedStringKey("Aggiungi il tuo primo posto dalla scheda Creazione Spot.") : LocalizedStringKey("Non ci sono spot corrispondenti ai filtri selezionati."))
         } actions: {
             if haFiltriAttivi || !testoRicerca.isEmpty {
                 Button("Mostra tutti gli spot") {
@@ -227,7 +240,7 @@ struct MieiSpot: View {
 }
 
 struct ChipFiltroSpot: View {
-    let titolo: String
+    let titolo: LocalizedStringKey
     let icona: String
     let attivo: Bool
     let action: () -> Void
@@ -286,7 +299,7 @@ struct RigaSpot: View {
                     }
                 }
                 HStack(spacing: 6) {
-                    Text(spot.categoria)
+                    Text(TipologiaSpot.nomeVisualizzato(categoria: spot.categoria))
                         .font(.caption2.weight(.semibold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)

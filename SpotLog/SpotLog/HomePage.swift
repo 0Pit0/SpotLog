@@ -14,6 +14,15 @@ enum StileMappa: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Nome mostrato all'utente (il rawValue resta salvato in AppStorage e non va tradotto).
+    var titolo: LocalizedStringResource {
+        switch self {
+        case .standard: "Standard"
+        case .ibrida: "Ibrida"
+        case .satellite: "Satellite"
+        }
+    }
+
     var mapStyle: MapStyle {
         switch self {
         case .standard: .standard
@@ -205,7 +214,7 @@ struct Pagina: View {
 
                 Menu {
                     Picker("Stile Mappa", selection: $stileMappa) {
-                        ForEach(StileMappa.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(StileMappa.allCases) { Text($0.titolo).tag($0) }
                     }
                     if filtroSelezionato != "Tutti" || !searchText.isEmpty {
                         Divider()
@@ -229,7 +238,7 @@ struct Pagina: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(tags, id: \.nome) { tag in
-                        ButtonTipologie(text: tag.nome, icon: tag.icona, isSelected: filtroSelezionato.uguale(tag.nome)) {
+                        ButtonTipologie(text: tag.nome == "Tutti" ? String(localized: "Tutti") : TipologiaSpot.nomeVisualizzato(categoria: tag.nome), icon: tag.icona, isSelected: filtroSelezionato.uguale(tag.nome)) {
                             // De-zoom solo se "Tutti" era già selezionato (secondo tocco), non quando ci si arriva da un altro filtro.
                             if tag.nome == "Tutti" && filtroSelezionato == "Tutti" {
                                 withAnimation(.easeInOut(duration: 1.0)) { position = .rect(.world) }

@@ -23,7 +23,7 @@ struct Dettaglio: View {
 
                     Text(place.name).font(.title.bold())
 
-                    Text("\(place.nazione) · \(place.dataCreazione.formatted(date: .abbreviated, time: .omitted)) · \(place.categoria)")
+                    Text("\(place.nazione) · \(place.dataCreazione.formatted(date: .abbreviated, time: .omitted)) · \(TipologiaSpot.nomeVisualizzato(categoria: place.categoria))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -55,7 +55,7 @@ struct Dettaglio: View {
                             .capsula(Color.blue)
                         }
                         Spacer()
-                        ShareLink(item: "\(place.name) (\(place.categoria)) - https://maps.apple.com/?ll=\(place.latitude),\(place.longitude)") {
+                        ShareLink(item: "\(place.name) (\(TipologiaSpot.nomeVisualizzato(categoria: place.categoria))) - https://maps.apple.com/?ll=\(place.latitude),\(place.longitude)") {
                             HStack {
                                 Text("Condividi").bold()
                                 Image(systemName: "square.and.arrow.up")
@@ -156,10 +156,10 @@ private struct DistanzaDaTe: View {
 
     var body: some View {
         let negata = [CLAuthorizationStatus.denied, .restricted].contains(gestore.autorizzazione)
-        let distanza = negata ? nil : gestore.posizione.map { "\(place.distanzaFormattata(da: $0)) da te" }
+        let distanza = negata ? nil : gestore.posizione.map { String(localized: "\(place.distanzaFormattata(da: $0)) da te") }
         HStack {
             Image(systemName: "location.circle.fill").foregroundStyle(.blue)
-            Text(distanza ?? (negata ? "Posizione non disponibile" : "Calcolo distanza…"))
+            Text(distanza ?? (negata ? String(localized: "Posizione non disponibile") : String(localized: "Calcolo distanza…")))
                 .font(.caption)
                 .foregroundStyle(distanza == nil ? .secondary : .primary)
         }

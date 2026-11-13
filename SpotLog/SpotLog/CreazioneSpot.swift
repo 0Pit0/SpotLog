@@ -9,8 +9,17 @@ enum TipologiaSpot: Int, CaseIterable, Identifiable {
     static let predefinite = allCases.filter { $0 != .nuovaTipologia }
 
     var id: Int { rawValue }
+    /// Nome salvato nel database (sempre in italiano): non usarlo direttamente nella UI.
     var titolo: String { info.titolo }
     var icona: String { info.icona }
+
+    /// Nome tradotto da mostrare all'utente (la chiave è il titolo italiano in Localizable.xcstrings).
+    var nomeVisualizzato: String { String(localized: String.LocalizationValue(titolo)) }
+
+    /// Traduce una categoria salvata se è predefinita; le categorie create dall'utente restano invariate.
+    static func nomeVisualizzato(categoria: String) -> String {
+        predefinite.first { $0.titolo.uguale(categoria) }?.nomeVisualizzato ?? categoria
+    }
 
     private var info: (titolo: String, icona: String) {
         switch self {
@@ -150,7 +159,7 @@ struct CampiSpot: View {
         Menu {
             Section("Predefinite") {
                 ForEach(TipologiaSpot.predefinite) { tipo in
-                    voce(tipo.titolo, icona: tipo.icona, selezionata: dati.tipologia == tipo) {
+                    voce(tipo.nomeVisualizzato, icona: tipo.icona, selezionata: dati.tipologia == tipo) {
                         dati.seleziona(tipo)
                     }
                 }
@@ -173,7 +182,8 @@ struct CampiSpot: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Text(dati.categoria(fallback: "Nuova Tipologia…")).fontWeight(.medium)
+                Text(dati.tipologia == .nuovaTipologia ? dati.categoria(fallback: String(localized: "Nuova Tipologia…")) : dati.tipologia.nomeVisualizzato)
+                    .fontWeight(.medium)
                 Image(systemName: dati.tipologia.icona)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption2)
@@ -309,7 +319,7 @@ struct CreazioneSpot: View {
     var body: some View {
         NavigationStack {
             Form {
-                SelettorePosizioneSpot(cameraPosition: $cameraPosition, coordinata: coordinata, dati: dati, titoloPredefinito: "Nuovo Spot", altriSpot: places) { coord in
+                SelettorePosizioneSpot(cameraPosition: $cameraPosition, coordinata: coordinata, dati: dati, titoloPredefinito: String(localized: "Nuovo Spot"), altriSpot: places) { coord in
                     haImpostatoPosizioneIniziale = true
                     sposta(su: coord)
                 }

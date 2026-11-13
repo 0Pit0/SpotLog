@@ -1,0 +1,14 @@
+{
+  "sourceLanguage" : "it",
+  "strings" : {
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Testo mostrato quando l'app chiede il permesso di usare la posizione",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "To create the spot at your current location" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Per creare lo spot nella posizione in cui ti trovi" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
