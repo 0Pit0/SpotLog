@@ -152,7 +152,7 @@ extension Color {
 struct Pagina: View {
     @Query(sort: \FavoritePlaces.dataCreazione, order: .reverse) private var places: [FavoritePlaces]
     
-    @AppStorage("stileMappa") private var stileMappaRaw: String = StileMappa.standard.rawValue
+    @AppStorage("stileMappa") private var stileMappaRaw: String = StileMappa.satellite.rawValue
     
     @State private var searchText: String = ""
     @State private var filtroSelezionato: String = "Tutti"
