@@ -1,46 +1,63 @@
-# 🌍 Atlante dei Paesi
+# 📍 SpotLog
 
-Applicazione nativa **iOS** per l'esplorazione geografica, demografica e la gestione offline dei preferiti dei Paesi del mondo.
+Applicazione nativa **iOS** per salvare, organizzare e ritrovare su mappa i propri luoghi del cuore ("spot"): panorami, monumenti, ristoranti, spiagge e qualsiasi posto valga la pena ricordare, con foto, note e valutazione.
 
 Progetto di gruppo per il corso di Progettazione e Sviluppo iOS (Secondo Anno - Software Architect) presso l'ITS Angelo Rizzoli.
 
 | | |
 |---|---|
 | **Team** | Andrea Biscaldi, Lorenzo Cenderelli, Federico Chiappa, Pietro Gallo, Thomas Palomba |
-| **Piattaforma** | iOS · Swift · SwiftUI |
+| **Piattaforma** | iOS / iPadOS 18+ · Swift · SwiftUI |
+| **Lingue** | Italiano (lingua base) · Inglese |
 
 ---
+
 ## 1. Visione del progetto
 
-L'obiettivo è realizzare un'app per consultare i Paesi del mondo: bandiera, capitale, popolazione e posizione su mappa.
+L'obiettivo è offrire un diario di viaggio personale basato sulla posizione: l'utente salva un punto sulla mappa (dove si trova o dove tocca), gli assegna una tipologia, un colore, delle foto, delle note e un voto, e può poi ritrovarlo, filtrarlo e raggiungerlo in qualsiasi momento.
 
-L'app **non necessita di un backend proprietario**. Adotta un'architettura client-side nativa, basata sul pattern **MVVM** e sulla **Protocol-Oriented Programming (POP)**, che:
+L'app **non necessita di un backend proprietario** e funziona **interamente in locale**:
 
-- consuma l'API REST pubblica e gratuita [restcountries.com](https://restcountries.com/) per mostrare dati aggiornati sui Paesi del mondo;
-- salva i Paesi preferiti in locale con **CoreData**, così restano consultabili offline;
-- usa **MapKit** e **CoreLocation** per mappe e geolocalizzazione.
+- tutti gli spot, foto comprese, sono salvati sul dispositivo con **SwiftData**, quindi restano consultabili anche offline;
+- usa **MapKit** per la mappa interattiva e **CoreLocation** per la posizione dell'utente e il calcolo delle distanze;
+- ricava automaticamente la nazione dello spot tramite reverse geocoding (`CLGeocoder`).
 
 ---
 
 ## 2. Funzionalità principali
 
-1. 🌐 **Esplorazione globale**: lista di tutti i Paesi del mondo recuperati in tempo reale via API REST, con barra di ricerca integrata.
-2. 📖 **Scheda dettaglio**: vista approfondita con bandiera, capitale, popolazione, moneta, lingue e mini-mappa centrata sulle coordinate geografiche del Paese, con pulsante per aggiungerlo ai preferiti.
-3. ⭐ **Gestione preferiti offline**: salvataggio dei Paesi preferiti in locale con CoreData, per la consultazione anche senza connessione di rete.
-4. 🗺️ **Mappa**: pin per i Paesi salvati.
-5. 📍 **Geolocalizzazione GPS**: rilevazione della posizione attuale dell'utente e calcolo della distanza geografica dalla capitale del Paese selezionato.
+1. 🗺️ **Mappa degli spot**: tutti i luoghi salvati come marker colorati con l'icona della loro tipologia, centrata sulla posizione dell'utente. Include ricerca testuale (nome, note, nazione), filtri rapidi per tipologia e scelta dello stile mappa (Standard, Ibrida, Satellite), che viene ricordata tra un avvio e l'altro.
+2. ➕ **Creazione spot**: il segnalino parte dalla posizione attuale e si sposta toccando la mappa (gli altri spot restano visibili in grigio come riferimento). Per ogni spot si impostano:
+   - nome e note di viaggio;
+   - tipologia predefinita (Panorama, Monumento, Natura, Ristoro, Cultura, Spiaggia, Divertimento, Shopping) oppure una **tipologia personalizzata**, riutilizzabile negli spot successivi;
+   - colore del marker;
+   - foto dalla libreria (`PhotosPicker`);
+   - valutazione da 1 a 5 stelle.
+3. 📖 **Scheda dettaglio**: mini-mappa satellitare, nazione, data di creazione, tipologia, voto, **distanza da te** in tempo reale, galleria foto a schermo intero con zoom, pulsante **Indicazioni** (apre Apple Mappe in modalità navigazione) e **Condividi** (link Apple Maps tramite `ShareLink`).
+4. ✏️ **Modifica ed eliminazione**: ogni spot può essere modificato (posizione compresa) o eliminato, con richiesta di conferma.
+5. 📋 **I Miei Spot**: elenco raggruppato per nazione, con ricerca, filtri (tipologia, nazione, voto minimo, solo con foto), ordinamento (più recenti, più vicini a te, voto più alto, A-Z) ed eliminazione con swipe.
+6. 🌐 **Localizzazione**: interfaccia disponibile in italiano e inglese tramite String Catalog (`.xcstrings`).
 
 ---
 
 ## 3. Architettura e tech stack
 
-- **Linguaggio**: Swift 5+
-- **UI framework**: SwiftUI (`TabView`, `NavigationStack`, `List`, `AsyncImage`, `.searchable`)
-- **Architettura**: MVVM (Model-View-ViewModel) + Protocol-Oriented Programming
-- **Networking e API**: `URLSession` con `async/await`, REST API ([restcountries.com](https://restcountries.com/)), `Codable` / `JSONDecoder`
-- **Database locale**: CoreData (`@FetchRequest`, `NSPersistentContainer`)
-- **Mappe e GPS**: MapKit (`Map`, `Marker`), CoreLocation (`CLLocationManager`)
+- **Linguaggio**: Swift 5
+- **UI framework**: SwiftUI (`TabView` con `Tab`, `NavigationStack`, `List`, `Form`, `Map`, `.searchable`, `.sheet`, `.fullScreenCover`, `ContentUnavailableView`)
+- **Persistenza locale**: SwiftData (`@Model`, `@Query`, `ModelContainer`, `modelContext`); le foto sono salvate con `@Attribute(.externalStorage)`
+- **Mappe e GPS**: MapKit (`Map`, `Marker`, `UserAnnotation`, `MapReader`, `MKMapItem`), CoreLocation (`CLLocationManager`, `CLGeocoder`)
+- **Media**: PhotosUI (`PhotosPicker`)
+- **Preferenze**: `@AppStorage` per lo stile della mappa
+- **Localizzazione**: String Catalog (`Localizable.xcstrings`, `InfoPlist.xcstrings`)
+- **Test**: Swift Testing (unit test) e XCTest (UI test)
 - **IDE**: Xcode
+
+L'architettura segue l'approccio nativo di SwiftUI + SwiftData: le view leggono i dati direttamente con `@Query` e scrivono tramite il `modelContext`, mentre la logica condivisa è separata in componenti riutilizzabili:
+
+- `FavoritePlaces`: modello SwiftData dello spot;
+- `DatiSpot`: struttura che contiene lo stato del form, condivisa tra creazione e modifica;
+- `CampiSpot` e `SelettorePosizioneSpot`: sezioni del form e mappa di selezione riutilizzate in entrambe le schermate;
+- `LocationManager` / `GestorePosizione`: classi `ObservableObject` che incapsulano CoreLocation.
 
 ---
 
@@ -50,25 +67,39 @@ Il progetto copre i moduli didattici previsti dal programma d'esame (escluso il 
 
 | Modulo | Argomento | Implementazione nel progetto |
 |---|---|---|
-| 1-3 | Fondamenti e Swift | `struct`, `enum`, optional, MVVM, concorrenza (`async/await`) |
-| 4 | Protocolli | `Codable`, `Identifiable`, `ObservableObject`, protocolli per i servizi |
-| 5 | Framework | Foundation, SwiftUI, CoreData, MapKit, CoreLocation |
-| 6-9 | SwiftUI e navigazione | `TabView`, `NavigationStack`, `List`, `AsyncImage`, `@State`, `@StateObject` |
-| 7 | Ciclo di vita | Gestione degli stati dell'app con `scenePhase` |
-| 10 | CoreData | Entità `FavoriteCountry` per salvataggio e lettura offline |
-| 11-13 | WebService, REST e JSON | `URLSession` asincrono e parsing JSON con `JSONDecoder` |
-| 14 | Mappe e localizzazione | Mappe interattive con MapKit e posizione utente con CoreLocation |
-| 16 | Release e pubblicazione | Configurazione `Info.plist` (permessi GPS) e archivio Xcode |
+| 1-3 | Fondamenti e Swift | `struct`, `class`, `enum` con `rawValue`, optional, extension, closure, concorrenza (`async/await`, `Task`, `@MainActor`) |
+| 4 | Protocolli | `Identifiable`, `CaseIterable`, `Hashable`, `ObservableObject`, `CLLocationManagerDelegate`, `View` |
+| 5 | Framework | Foundation, SwiftUI, SwiftData, MapKit, CoreLocation, PhotosUI |
+| 6-9 | SwiftUI e navigazione | `TabView`, `NavigationStack`, `List`, `Form`, `Menu`, `Picker`, `@State`, `@Binding`, `@StateObject`, `@FocusState`, `@AppStorage` |
+| 7 | Ciclo di vita | Avvio e arresto degli aggiornamenti GPS con `onAppear` / `onDisappear`, gestione dei cambi di autorizzazione |
+| 10 | Persistenza dati | Modello SwiftData `FavoritePlaces` per salvataggio, modifica ed eliminazione offline |
+| 11-13 | WebService e servizi di rete | Reverse geocoding asincrono con `CLGeocoder` per ricavare la nazione dello spot |
+| 14 | Mappe e localizzazione | Mappa interattiva con MapKit, selezione del punto al tocco, posizione utente e distanze con CoreLocation, indicazioni stradali con Apple Mappe |
+| 16 | Release e pubblicazione | Permesso `NSLocationWhenInUseUsageDescription` localizzato, localizzazione IT/EN, archivio Xcode |
 
 ---
 
 ## 5. Struttura del progetto
 
 ```
-Da fare alla fine del progetto
+SpotLog/
+├── Localizable.xcstrings          # Stringhe dell'interfaccia (IT/EN)
+├── SpotLog.xcodeproj
+├── SpotLog/
+│   ├── SpotLogApp.swift           # Entry point e ModelContainer SwiftData
+│   ├── HomePage.swift             # TabView, mappa principale, modello FavoritePlaces, LocationManager, extension di utilità
+│   ├── CreazioneSpot.swift        # Schermata di creazione, tipologie, form condiviso e selettore di posizione
+│   ├── ModificaSpot.swift         # Schermata di modifica di uno spot
+│   ├── Dettaglio.swift            # Scheda dettaglio, mini-mappa, distanza e visualizzatore foto
+│   ├── MieiSpot.swift             # Elenco spot con ricerca, filtri e ordinamento
+│   ├── GestorePosizione.swift     # Gestione della posizione per distanze e ordinamento
+│   ├── InfoPlist.xcstrings        # Testo localizzato del permesso di posizione
+│   └── Assets.xcassets
+├── SpotLogTests/                  # Unit test (Swift Testing)
+└── SpotLogUITests/                # UI test (XCTest)
 ```
 
-Ogni componente vive in file separati, per ridurre al minimo i conflitti Git.
+Ogni schermata vive in un file separato, per ridurre al minimo i conflitti Git.
 
 ---
 
@@ -76,23 +107,24 @@ Ogni componente vive in file separati, per ridurre al minimo i conflitti Git.
 
 ### Requisiti
 
-- macOS Sonoma 14.0 o superiore
-- Xcode 15.0+ / iOS 17.0+
+- macOS con **Xcode 16** o superiore
+- Simulatore o dispositivo con **iOS 18.0+**
 
 ### Setup
 
 1. Clona il repository:
    ```bash
-   git clone https://github.com/0Pit0/ProgettoFinaleIOS.git
+   git clone https://github.com/0Pit0/SpotLog.git
    ```
-2. Apri il file `WorldAtlas.xcodeproj` in Xcode.
-3. Seleziona un simulatore iOS (es. iPhone 15) e premi **Cmd + R** per avviare l'applicazione.
+2. Apri il file `SpotLog/SpotLog.xcodeproj` in Xcode.
+3. Seleziona un simulatore iOS (es. iPhone 16) e premi **Cmd + R** per avviare l'applicazione.
+4. Al primo avvio concedi l'accesso alla posizione. Sul simulatore puoi impostarne una da **Features → Location**.
 
-> L'API REST Countries è pubblica e non richiede chiavi di accesso.
+> L'app non usa API esterne né chiavi di accesso: tutti i dati restano sul dispositivo.
 
 ### Note sul versionamento Git
 
-> ⚠️ **Gestione dei file di sistema**: Il repository **non accetta file `.DS_Store`**. Assicurati che siano inclusi nel file `.gitignore` prima di effettuare commit o push per evitare conflitti.
+> ⚠️ **Gestione dei file di sistema**: il repository **non accetta file `.DS_Store`**, già esclusi dal `.gitignore` insieme a `xcuserdata/`, `DerivedData/` e `build/`. Controlla di non includerli prima di effettuare commit o push.
 
 ---
 
@@ -102,10 +134,10 @@ Il progetto segue una strategia di sviluppo incrementale a **Milestone**, sincro
 
 | Milestone | Contenuto |
 |---|---|
-| **1 · UI e navigazione** | Struttura UI e navigazione con dati mock (SwiftUI, `TabView`, `NavigationStack`) |
-| **2 · Networking e REST** | Layer di rete e REST API (`URLSession`, `Codable`) con parsing del JSON reale |
-| **3 · CoreData** | Persistenza locale e gestione dei preferiti offline |
-| **4 · MapKit e GPS** | Mappe e geolocalizzazione (MapKit, CoreLocation) |
+| **1 · UI e navigazione** | Struttura a schede (`TabView`), mappa principale, form di creazione ed elenco spot |
+| **2 · Persistenza** | Modello SwiftData `FavoritePlaces`, salvataggio, modifica ed eliminazione degli spot, foto |
+| **3 · MapKit e GPS** | Posizione utente, selezione del punto sulla mappa, distanze, indicazioni e reverse geocoding |
+| **4 · Rifinitura** | Ricerca, filtri e ordinamenti, tipologie personalizzate, condivisione, localizzazione IT/EN |
 
 ---
 
@@ -113,7 +145,7 @@ Il progetto segue una strategia di sviluppo incrementale a **Milestone**, sincro
 
 |  |
 |---|
-| [Andrea Biscaldi](https://www.linkedin.com/in/andreabiscaldi/) | 
+| [Andrea Biscaldi](https://www.linkedin.com/in/andreabiscaldi/) |
 | [Lorenzo Cenderelli](https://www.linkedin.com/in/lorenzo-cende/) |
 | [Federico Chiappa](https://www.linkedin.com/in/federico-chiappa/) |
 | [Pietro Gallo](https://www.linkedin.com/in/pietro-gallo-pit) |
